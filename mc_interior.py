@@ -16,19 +16,37 @@ class MCInterior(MCDensity):
 
     def get_env_pct(self):
         return self._env
-        
+
     def plot_rock(self):
         plt.plot(self._radii, self._rock, label="rock ratio")
 
     def plot_env(self):
         plt.plot(self._radii, self._env, label="env ratio")
-        
+
+    def compute_env_mass(self):
+        return physical.compute_mass(self._radii, self._densities*self._env, self._fixed_density)
+
+    def compute_rock_mass(self):
+        return physical.compute_mass(self._radii, self._densities*self._rock, self._fixed_density)
+
+    def compute_water_mass(self):
+        total_mass = self.get_mass()
+        return total_mass-self.compute_env_mass()-self.compute_rock_mass()
+
+    def compute_rock_water_ratio(self):
+        return self.compute_rock_mass()/self.compute_water_mass()
+
     def get_temp(self):
         return physical.compute_temp(self._radii, self._densities, self._rock, self._env, self._cgs)
+
+    def get_old_temp(self):
+        return physical.compute_old_temp(self._radii, self._densities, self._rock, self._env, self._cgs)
 
     def plot_temp(self):
         plt.plot(self._radii, self.get_temp())
 
+    def plot_old_temp(self):
+        plt.plot(self._radii, self.get_old_temp())
 
 class MCInteriorFactory(object):
     def __init__(self, pct_rock, pct_env, density_model):
@@ -42,7 +60,7 @@ class MCInteriorFactory(object):
 
     def radius(self):
         return self._shells[-1]
-        
+
     def _squish(self, percent, squish_ratio, outer=False):
         if not outer:
             # Resize the model on the y-axis, so the outer
@@ -61,22 +79,22 @@ class MCInteriorFactory(object):
         # Note, cannot be smaller than the total percent of rock in 
         # the total model.
         assert interior >= self._r, "Impossible to have less than %s rock in the core"%self._r
-        
+
         # Start with a random distribution (1,0)
         init = 0
-        
+
         while init < self._r * self._mass:
             model = monotonic.get_monotonic_vals(self._shells/self.radius())*interior
             init = physical.compute_mass(self._shells, model*self._rho)
-        
+
         # Now do binary search
         max_bound = 1.0
         min_bound = 0.0
         cur_bound = 0.5
-        
+
         # Current plan is to do a fixed number (10?) to get close enough, 
         # then solve for the last part
-        
+
         for i in range(10):
             rock = self._squish(model, cur_bound)
             rock_mass = physical.compute_mass(self._shells, rock*self._rho)
@@ -85,7 +103,7 @@ class MCInteriorFactory(object):
             else:
                 min_bound = cur_bound
             cur_bound = (max_bound+min_bound)*0.5
-            
+
         # The amout of mass in all three is about right.   We'll the largest
         # of these and just multiplty the percentage in each shell.   The 
         # reason we take the largest is to avoid have a percent higher than 1.0.
@@ -100,23 +118,23 @@ class MCInteriorFactory(object):
         # Note, cannot be smaller than the total percent of envelope in 
         # the total model.
         assert exterior >= self._e, "Impossible to have less than %s envelope in the outer shell"%self._r
-        
+
         # Start with a random distribution (1,0)
         init = 0
-        
+
         while init < self._r * self._mass:
             model = monotonic.get_monotonic_vals(self._shells/self.radius())[::-1]*exterior
             # reverse the order.
             init = physical.compute_mass(self._shells, model*self._rho)
-        
+
         # Now do binary search
         max_bound = 1.0
         min_bound = 0.0
         cur_bound = 0.5
-        
+
         # Current plan is to do a fixed number (10?) to get close enough, 
         # then solve for the last part
-        
+
         for i in range(10):
             env = self._squish(model, cur_bound, outer=True)
             env_mass = physical.compute_mass(self._shells, env*self._rho)
@@ -125,7 +143,7 @@ class MCInteriorFactory(object):
             else:
                 min_bound = cur_bound
             cur_bound = (max_bound+min_bound)*0.5
-      
+
         # The amout of mass in all three is about right.   We'll the largest
         # of these and just multiplty the percentage in each shell.   The 
         # reason we take the largest is to avoid have a percent higher than 1.0.
@@ -133,9 +151,9 @@ class MCInteriorFactory(object):
         env_mass = physical.compute_mass(self._shells, env*self._rho)
         env = env*(self._e*self._mass/env_mass)
         return env
-    
-def create_mcinterior(mass, moment_ratio, radius, pct_rock, pct_env, num_shells=100, rock_0=1.0, env_0=1.0):
-    mcdensity = create_mcdensity(mass, moment_ratio, radius, num_shells)
+
+def create_mcinterior(mass, moment_ratio, radius, pct_rock, pct_env, num_shells=100, rock_0=1.0, env_0=1.0, num_samples=100):
+    mcdensity = create_mcdensity(mass, moment_ratio, radius, num_shells, num_samples)
     factory = MCInteriorFactory(pct_rock, pct_env, mcdensity)
     rock = factory.create_rock_model(rock_0)
     env = factory.create_env_model(env_0)
@@ -145,6 +163,3 @@ def create_mcinterior(mass, moment_ratio, radius, pct_rock, pct_env, num_shells=
     return MCInterior(mcdensity._radii, mcdensity._densities, rock, env)
 
 
-
-
-    
