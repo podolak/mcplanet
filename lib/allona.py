@@ -1,0 +1,65 @@
+import numpy as np
+
+from lib.mc_density           import MCDensity
+from lib.mc_interior          import MCInterior
+import lib.temperature        as temperature
+import lib.constants          as constants
+
+def allona_mcdensity():
+    allona_data =  [i.strip('\n').split() for i in open("data/allona/out3D_U4.txt")][2:]
+    #header = allona_data[0][1:]
+    data = allona_data[-502:]
+    data = [[float(y) for y in x[1:]] for x in data[2:]]
+    radius = [x[3]*constants.SUN_RADIUS for x in data]
+    rho = [x[7] for x in data]
+    #p = [x[4] for x in data]
+    #temp = [x[5] for x in data]
+    
+    allona_planet = MCDensity(np.array(radius[1:]), np.array(rho[1:]) )
+    return allona_planet
+
+def allona_density():
+    allona_data =  [i.strip('\n').split() for i in open("data/allona/out3D_U4.txt")][2:]
+    data = allona_data[-502:]
+    data = [[float(y) for y in x[1:]] for x in data[2:]]
+    density = [x[7] for x in data]
+    return density
+
+def allona_temp():
+    allona_data =  [i.strip('\n').split() for i in open("data/allona/out3D_U4.txt")][2:]
+    data = allona_data[-502:]
+    data = [[float(y) for y in x[1:]] for x in data[2:]]
+    temp = [x[5] for x in data]
+    return temp
+    
+def allona_pressure():
+    allona_data =  [i.strip('\n').split() for i in open("data/allona/out3D_U4.txt")][2:]
+    #header = allona_data[0][1:]
+    data = allona_data[-502:]
+    data = [[float(y) for y in x[1:]] for x in data[2:]]
+    p = [x[4] for x in data]
+    return p
+
+
+def allona_mcinterior(catalog):
+    rock = []
+    env = []
+    allona_planet = allona_mcdensity()
+    pressure = allona_planet.get_pressure()
+    densities = allona_planet.get_densities()
+    temp = allona_temp()
+    
+    r = 1;e =0
+    for i in range(len(pressure)):
+        comp = catalog.get_composition(temp[i], densities[i], pressure[i])
+        if comp is None:
+            print(i, temp[i],",",densities[i],",", pressure[i])
+            rock.append(r)
+            env.append(e)
+            continue
+        r,_,e = temperature.composition_to_mix3(comp)
+        rock.append(r)
+        env.append(e)
+    
+    allona_interior = MCInterior(allona_planet.get_radii(), allona_planet.get_densities(), rock, env, catalog)
+    return allona_interior
