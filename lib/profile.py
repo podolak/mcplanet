@@ -260,11 +260,14 @@ def get_fixed_temp_model(mass, moment_ratio, radius, num_shells,
     if seed == None:
         seed = round(random.random(),9)
     random.seed(seed)
-
-    mcdensity = mc_density.create_mcdensity(mass, moment_ratio, radius, num_shells=num_shells, smooth=smooth)
+    try:
+        mcdensity = mc_density.create_mcdensity(mass, moment_ratio, radius, num_shells=num_shells, smooth=smooth)
     
-    profile = TemperatureProfile(temperature_catalog, mcdensity)
-    inter, count =  profile.monotonic_interior(max_temp, inverse)
+        profile = TemperatureProfile(temperature_catalog, mcdensity)
+        inter, count =  profile.monotonic_interior(max_temp, inverse)
+    except:
+        print("Unexpected error with seed = %s"%seed)
+        return seed, None, None
     
     if inter is None:
         return seed, None, None
