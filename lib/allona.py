@@ -18,6 +18,12 @@ def allona_mcdensity():
     allona_planet = MCDensity(np.array(radius[1:]), np.array(rho[1:]) )
     return allona_planet
 
+def allona_env_pct():
+    allona_z =  [i.strip('\n').split() for i in open("data/allona/outmod3D_U4_final.txt")][5:]
+    data = [[float(y) for y in x[1:]] for x in allona_z]
+    env = [1.0-x[6] for x in data]
+    return env
+
 def allona_density():
     allona_data =  [i.strip('\n').split() for i in open("data/allona/out3D_U4.txt")][2:]
     data = allona_data[-502:]

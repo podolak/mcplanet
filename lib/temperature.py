@@ -320,7 +320,7 @@ def temp_pressure_to_density_table(filename, comp):
 
 def sio2_density_table():
      return temp_pressure_to_density_table("data/SiO2_temp_pressure_to_density.txt", 1.0)
-
+    
 def dunite_density_table():
     return temp_pressure_to_density_table("data/dunite_temp_pressure_to_density.txt", 1.0)
 
@@ -330,9 +330,21 @@ def water_density_table():
 def env_density_table():
     return temp_pressure_to_density_table("data/env_temp_pressure_to_density.txt", -1.0)
 
+def allona_env_density_table():
+    return temp_pressure_to_density_table("data/allona_env_temp_pressure_to_density.txt", -1.0)
+
 def Z_density_table():
     # Z is 65% percent dunite, 35%% water.
     return temp_pressure_to_density_table("data/Z_temp_pressure_to_density.txt", 0.0)
+    
+def sio2_water_2_1_density_table():
+    return temp_pressure_to_density_table("data/sio2_water_2_1_temp_pressure_to_density.txt", 0.0)
+
+def sio2_water_3_1_density_table():
+    return temp_pressure_to_density_table("data/sio2_water_3_1_temp_pressure_to_density.txt", 0.0)
+
+def sio2_water_4_1_density_table():
+    return temp_pressure_to_density_table("data/sio2_water_4_1_temp_pressure_to_density.txt", 0.0)
     
 def build_catalog(catalog_name, table_list):
     global temperature_catalog_cache
@@ -341,10 +353,25 @@ def build_catalog(catalog_name, table_list):
     return temperature_catalog_cache[catalog_name]
         
 def Z_env_catalog():
-    return build_catalog("mix_env_catalog", [env_density_table(), Z_density_table()])
+    return build_catalog("mix_env_catalog", [env_density_table(), Z_density_table(), dunite_density_table()])
 
 def sio2_water_env_catalog():
     return build_catalog("sio2_water_env_catalog", [env_density_table(), water_density_table(), sio2_density_table()])
 
+def non_log_sio2_water_env_catalog():
+    return build_catalog("non_log_sio2_water_env_catalog", [env_density_table(), non_log_water_density_table(), non_log_sio2_density_table()])
+
 def dunite_water_env_catalog():
     return build_catalog("dunite_water_env_catalog", [env_density_table(), water_density_table(), dunite_density_table()])
+
+def allona_model_catalog():
+    return build_catalog("allona_model_catalog", [allona_env_density_table(), sio2_water_2_1_density_table(), sio2_density_table()])
+
+def sio2_water_2_1_catalog():
+    return build_catalog("allona_model_catalog", [env_density_table(), sio2_water_2_1_density_table(), sio2_density_table()])
+
+def sio2_water_3_1_catalog():
+    return build_catalog("allona_model_catalog", [env_density_table(), sio2_water_3_1_density_table(), sio2_density_table()])
+
+def sio2_water_4_1_catalog():
+    return build_catalog("allona_model_catalog", [env_density_table(), sio2_water_4_1_density_table(), sio2_density_table()])
