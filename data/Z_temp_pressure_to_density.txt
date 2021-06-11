@@ -1,4 +1,4 @@
-Composition = 65% SiO2, 35% Water
+Composition = 65% Dunite, 35% Water
 log temp, log pressure (dyne/cm^2), logdensity (g/cc)
 1.14,-4.6,0.24921401208590094
 1.14,-4.4,0.25048142687687835
