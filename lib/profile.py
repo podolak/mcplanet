@@ -65,7 +65,7 @@ class TemperatureProfile(object):
         cur_comp = self._catalog.get_composition(max_temp, rho[0], p[0])
         cur_temp = max_temp
         if cur_comp is None:
-            cur_comp = self._catalog._compositions.max()
+            cur_comp = self._catalog.get_max_comp(rho[0], p[0])
           
         for i in range(len(rad)):
          
@@ -73,11 +73,19 @@ class TemperatureProfile(object):
 
             # We'll start with comp.  
             if temp_for_comp is None:
-                # So the current composition is not giving a temp.  
-                # We will just push a None for now and go to the next shtell.
-                comps.append(None)
-                temps.append(None)
-                continue  
+                # Try comp_for_temp
+                comp_for_temp = self._catalog.get_composition(cur_temp, rho[i], p[i])
+                if comp_for_temp is None or comp_for_temp > cur_comp + 0.01:
+                    # So the current composition is not giving a temp.  
+                    # We will just push a None for now and go to the next shtell.
+                    comps.append(None)
+                    temps.append(None)
+                    continue  
+                else:
+                    cur_comp = comp_for_temp
+                    comps.append(cur_comp)
+                    temps.append(cur_temp)
+                    continue
 
             elif temp_for_comp < cur_temp +1:
                 # This is what we want.   Just use same composition.
@@ -123,40 +131,78 @@ class TemperatureProfile(object):
         
         comps = []
         temps = []
-        import ipdb;ipdb.set_trace()
         cur_comp = self._catalog.get_composition(min_temp, rho[-1], p[-1])
         cur_temp = min_temp
+        if cur_comp is None:
+            cur_comp = self._catalog._compositions.min()
         for i in reversed(range(len(rad))):
+            #print(rho[i], p[i])
+            #print(cur_temp, cur_comp)
+            #import ipdb;ipdb.set_trace()
+            # special case:
+            if rho[i] == 0 and p[i] == 0:
+                comps.append(self._catalog._compositions.min())
+                temps.append(0)
+                continue
             temp_for_comp = self._catalog.get_temp(cur_comp, rho[i], p[i])
             
             # We'll start with comp.  
             if temp_for_comp is None:
+                comp_for_temp = self._catalog.get_composition(cur_temp, rho[i], p[i])
+                if comp_for_temp is None:
+                    # Everything is None.  Start a new batch
+                    new_comp = self._catalog.get_min_comp(rho[i], p[i])
+                    new_temp = self._catalog.get_temp(new_comp, rho[i], p[i])
+                    if new_temp is None or new_comp is None:
+                        #import ipdb;ipdb.set_trace()
+                        comps.append(None)
+                        temps.append(None)
+                        continue  
+                    if new_temp > cur_temp -1 and new_comp > cur_comp - 0.01:
+                        cur_comp = new_comp
+                        cur_temp = new_temp
+                        comps.append(cur_comp)
+                        temps.append(cur_temp)
+                        continue
+                    else:
+                        comps.append(None)
+                        temps.append(None)
+                        continue  
+                    
+                if comp_for_temp > cur_comp - 0.01:
+                    cur_comp = comp_for_temp
+                    comps.append(cur_comp)
+                    temps.append(cur_temp)
+                    continue
+                
                 # So the current composition is not giving a temp.  
                 # We will just push a None for now and go to the next shtell.
                 comps.append(None)
                 temps.append(None)
                 continue  
                 
-            elif temp_for_comp > cur_temp:
+            elif temp_for_comp > cur_temp -1:
                 # This is what we want.   Just use same composition.
                 comps.append(cur_comp)
                 temps.append(temp_for_comp)
                 cur_temp = temp_for_comp
+                continue
             
             elif temp_for_comp <= cur_temp:
-                # Using the current composition yields a higher temperature.
+                # Using the current composition yields a lower temperature.
                 # Instead, find a new composition that give that temp.
                 comp_for_temp = self._catalog.get_composition(cur_temp, rho[i], p[i])
             
                 
                 if comp_for_temp is None:
                     # We are out of bounds.   Try for next shell and hope for the best.
+                    #import ipdb;ipdb.set_trace()
                     comps.append(None)
                     temps.append(None)
                     continue
                 
                 # Sanity check, new comp cannot be higher.
-                assert comp_for_temp >= cur_comp, "Error: composition not monontonic"
+                assert comp_for_temp >= cur_comp - 0.01, "Error: composition not monontonic"
                 
                 cur_comp = comp_for_temp
                 comps.append(comp_for_temp)
@@ -242,6 +288,7 @@ class TemperatureProfile(object):
             if comp is None:
                 if prev is None:
                     # First shell doesn't match anything.
+                    #import ipdb;ipdb.set_trace()
                     return None, None
                 count = count +1
                 mix.append(temperature.composition_to_mix3(prev))
@@ -260,14 +307,14 @@ def get_fixed_temp_model(mass, moment_ratio, radius, num_shells,
     if seed == None:
         seed = round(random.random(),9)
     random.seed(seed)
-    try:
-        mcdensity = mc_density.create_mcdensity(mass, moment_ratio, radius, num_shells=num_shells, smooth=smooth)
+
     
-        profile = TemperatureProfile(temperature_catalog, mcdensity)
-        inter, count =  profile.monotonic_interior(max_temp, inverse)
-    except:
-        print("Unexpected error with seed = %s"%seed)
-        return seed, None, None
+    mcdensity = mc_density.create_mcdensity(mass, moment_ratio, radius, num_shells=num_shells, smooth=smooth)
+
+    profile = TemperatureProfile(temperature_catalog, mcdensity)
+    inter, count =  profile.monotonic_interior(max_temp, inverse)
+   
+    
     
     if inter is None:
         return seed, None, None

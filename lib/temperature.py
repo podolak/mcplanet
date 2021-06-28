@@ -214,6 +214,30 @@ class TemperatureCatalog(object):
         # Just make sure things are sorted.
         assert((self._compositions == sorted(self._compositions)).all())
     
+    def get_min_comp(self, density, pressure):
+        # Minimum temperature for any composition:
+        max_comp = self._compositions[-1]
+        min_comp = self._compositions[0]
+        for i in range(20):
+            cur_comp = 0.5*(max_comp + min_comp)
+            if self.get_temp(cur_comp, density, pressure) is None:
+                min_comp = cur_comp
+            else:
+                max_comp = cur_comp
+        return max_comp
+    
+    def get_max_comp(self, density, pressure):
+        # Minimum temperature for any composition:
+        max_comp = self._compositions[-1]
+        min_comp = self._compositions[0]
+        for i in range(20):
+            cur_comp = 0.5*(max_comp + min_comp)
+            if self.get_temp(cur_comp, density, pressure) is None:
+                max_comp = cur_comp
+            else:
+                min_comp = cur_comp
+        return max_comp
+        
     def get_temp(self, composition, density, pressure, debug=False):
         try:
             c_below = np.where(self._compositions <= composition)[0]
@@ -245,7 +269,12 @@ class TemperatureCatalog(object):
         except:
             return None
         if min_temp == max_temp:
-            return 10**max_temp
+            if t_below.implied_temperature(density, pressure) is not None:
+                return 10**max_temp
+            else:
+                # The only reason we got the same temperature is because we set forec=true.   
+                # It's not the real temp.
+                return None
         if debug:
             print("temp ranges are: %s %s"%(min_temp, max_temp))
         if min_temp is None or max_temp is None:
