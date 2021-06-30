@@ -14,6 +14,9 @@ import numpy as np
 #
 # In the future we may want to produce p or rho, but leaving it for now.
 
+
+MIN_LOG_VAL = 0.0001 # For log(temp), log(pressure) purposes.
+
 #########################################################################
 # Composition.
 #########################################################################
@@ -95,8 +98,8 @@ class TemperatureTable(object):
         
     
     def get_density(self, temperature, pressure, debug=False):
-        temperature = np.log10(temperature)
-        pressure = np.log10(pressure) 
+        temperature = np.log10(max(temperature, MIN_LOG_VAL))
+        pressure = np.log10(max(pressure, MIN_LOG_VAL)) 
         
         # In the past, I've tried using scipy.interpolate.griddata.   
         # It didn't quite work for me for two reasons.   
@@ -185,8 +188,8 @@ class TemperatureTable(object):
         return None
 
     def implied_temperature(self, density, pressure, force=False, debug=False):
-        lowest_temp = self.min_log_temp(pressure)
-        highest_temp = self.max_log_temp(pressure)
+        lowest_temp = self.min_log_temp(max(pressure, MIN_LOG_VAL))
+        highest_temp = self.max_log_temp(max(pressure, MIN_LOG_VAL))
         low_log_temp = lowest_temp
         high_log_temp = highest_temp
         for i in range(20):

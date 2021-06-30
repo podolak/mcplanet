@@ -295,8 +295,11 @@ class TemperatureProfile(object):
             else:
                 mix.append(temperature.composition_to_mix3(comp))
                 prev = comp
+                
+        #if inverse:
+        #    mix = list(reversed(mix))
         rock, water, env = zip(*mix)
-        if count > 0.10 * len(rad) and not inverse:
+        if count > 0.10 * len(rad):
             return None, None
         return mc_interior.MCInterior(rad, rho, rock, env, self._catalog), count
     
@@ -314,13 +317,14 @@ def get_fixed_temp_model(mass, moment_ratio, radius, num_shells,
     profile = TemperatureProfile(temperature_catalog, mcdensity)
     inter, count =  profile.monotonic_interior(max_temp, inverse)
    
-    
+   
     
     if inter is None:
-        return seed, None, None
-        
+        return seed, None, None, None
+    
+    inner_temp = inter.inner_temp()
     if full_model:
-        return seed, inter, count
+        return seed, inter, inner_temp, count
     
     else:
-        return seed, inter.compute_ratios(), count
+        return seed, inter.compute_ratios(), inner_temp, count

@@ -61,6 +61,15 @@ class MCInterior(MCDensity):
             composition = temperature.mix3_to_composition(r_pct, None, e_pct) 
             temps.append(temp_catalog.get_temp(composition, rho, p))
         return np.array(temps)
+    
+    def inner_temp(self, temp_catalog=None):
+        if temp_catalog is None:
+            temp_catalog = self._catalog
+      
+        pressure = self.get_pressure()[0]
+        composition = temperature.mix3_to_composition(self._rock[0], None, self._env[0])
+        density = self._densities[0]
+        return temp_catalog.get_temp(composition, density, pressure)
 
     def plot_temp(self, catalog=None, label="Temperature"):
         plt.plot(self._radii, self.get_temp(catalog), label=label)
