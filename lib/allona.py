@@ -48,24 +48,19 @@ def allona_pressure():
 
 
 def allona_mcinterior(catalog):
-    rock = []
-    env = []
+    mix = []
     allona_planet = allona_mcdensity()
     pressure = allona_planet.get_pressure()
     densities = allona_planet.get_densities()
     temp = allona_temp()
     
-    r = 1;e =0
     for i in range(len(pressure)):
         comp = catalog.get_composition(temp[i], densities[i], pressure[i])
         if comp is None:
             print(i, temp[i],",",densities[i],",", pressure[i])
-            rock.append(r)
-            env.append(e)
+            mix.append(catalog.compmosition_to_mix(catalog._compositions[-1]))
             continue
-        r,_,e = temperature.composition_to_mix3(comp)
-        rock.append(r)
-        env.append(e)
-    
-    allona_interior = MCInterior(allona_planet.get_radii(), allona_planet.get_densities(), rock, env, catalog)
+        mix.append(catalog.composition_to_mix(comp))
+   
+    allona_interior = MCInterior(allona_planet.get_radii(), allona_planet.get_densities(), mix, catalog)
     return allona_interior

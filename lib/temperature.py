@@ -17,20 +17,7 @@ import numpy as np
 
 MIN_LOG_VAL = 0.0001 # For log(temp), log(pressure) purposes.
 
-#########################################################################
-# Composition.
-#########################################################################
-# I'm defining a single number c=[-1,1] for "composition".
-# for c>0, the mix is rock+water, where c is the fraction of rock.
-# for c<0, the mix is water+gas, where c is the fraction of gas.
-# c==0 means all water.
-def mix3_to_composition(rock, water, env):
-    assert(rock == 0.0 or env == 0.0)
-    return rock if rock>0 else -env
-    
-def composition_to_mix3(val):
-    return (val, 1.0-val, 0) if val > 0 else (0, 1.0+val, -val)
-    
+
 # Interpolate some mixture composition.
 # Assuming equal temp/pressure, the rule for density is:
 #
@@ -52,14 +39,18 @@ def interpolate_composition(density, d_above, d_below):
 # We currently store ANEOS and AQUA files.
 
 class TemperatureTable(object):
-    def __init__(self, comp, temp, pressure, density):
+    def __init__(self, comp, name, temp, pressure, density):
         # @param filename - the filename of the table.
         # @param comp - the composition value of the table
         # @param use_log - geometric interpolation if true.
         self._comp = comp
+        self._name = name
         self._temp = np.log10(temp)
         self._density = np.log10(density)
         self._pressure = np.log10(pressure)
+        
+    def get_name(self):
+        return self._name
 
     def _get_bracketing_temperatures_idx(self, temp):
         t_below = np.where(self._temp < temp)[0]
@@ -212,10 +203,38 @@ class TemperatureCatalog(object):
     def __init__(self, name, tables):
         self._name = name
         self._compositions = np.array([tt._comp for tt in tables])
+        self._names = np.array([tt._name for tt in tables])
         self._tables = tables
 
         # Just make sure things are sorted.
         assert((self._compositions == sorted(self._compositions)).all())
+
+    def get_table_names(self):
+        return self._names
+    
+    def mix_to_composition(self, mix):
+        assert(len(self._compositions) == len(mix))
+        return (self._compositions * np.array(mix)).sum()
+    
+    def composition_to_mix(self, composition):
+        retval = self._compositions*0.0
+        c_below = np.where(self._compositions <= composition)[0]
+        if len(c_below) > 0:
+            c_below = c_below[-1]
+        else:
+            c_below = None
+        c_above = np.where(self._compositions >= composition)[0]
+        if len(c_above) > 0:
+            c_above = c_above[0]
+        else:
+            c_above = None
+        if c_below == c_above:
+            retval[c_below] = 1.0
+        else:
+            retval[c_above] = composition - self._compositions[c_below]
+            retval[c_below] = self._compositions[c_above] - composition
+        return retval
+    
     
     def get_min_comp(self, density, pressure):
         # Minimum temperature for any composition:
@@ -342,41 +361,44 @@ class TemperatureCatalog(object):
 #########################################################################
 temperature_catalog_cache = {}
 
-def temp_pressure_to_density_table(filename, comp):
+def temp_pressure_to_density_table(filename, name, comp):
     data = [i.strip('\n').split(',') for i in open(filename)][2:]
     t = [float(x[0]) for x in data]
     p = [float(x[1]) for x in data]
     rho = [float(x[2]) for x in data]
-    return TemperatureTable(comp, 10**np.array(t), 10**np.array(p), 10**np.array(rho))
+    return TemperatureTable(comp, name, 10**np.array(t), 10**np.array(p), 10**np.array(rho))
 
 
 def sio2_density_table():
-     return temp_pressure_to_density_table("data/SiO2_temp_pressure_to_density.txt", 1.0)
+     return temp_pressure_to_density_table("data/SiO2_temp_pressure_to_density.txt", "SiO2", 1.0)
+    
+def iron_density_table():
+     return temp_pressure_to_density_table("data/Fe_temp_pressure_to_density.txt", "iron", 2.0)
     
 def dunite_density_table():
-    return temp_pressure_to_density_table("data/dunite_temp_pressure_to_density.txt", 1.0)
+    return temp_pressure_to_density_table("data/dunite_temp_pressure_to_density.txt", "dunite", 1.0)
 
 def water_density_table():
-    return temp_pressure_to_density_table("data/water_temp_pressure_to_density.txt", 0.0)
+    return temp_pressure_to_density_table("data/water_temp_pressure_to_density.txt", "water", 0.0)
 
 def env_density_table():
-    return temp_pressure_to_density_table("data/env_temp_pressure_to_density.txt", -1.0)
+    return temp_pressure_to_density_table("data/env_temp_pressure_to_density.txt", "env", -1.0)
 
 def allona_env_density_table():
-    return temp_pressure_to_density_table("data/allona_env_temp_pressure_to_density.txt", -1.0)
+    return temp_pressure_to_density_table("data/allona_env_temp_pressure_to_density.txt", "allona_env", -1.0)
 
 def Z_density_table():
     # Z is 65% percent dunite, 35%% water.
-    return temp_pressure_to_density_table("data/Z_temp_pressure_to_density.txt", 0.0)
+    return temp_pressure_to_density_table("data/Z_temp_pressure_to_density.txt", "allona_Z", 0.0)
     
 def sio2_water_2_1_density_table():
-    return temp_pressure_to_density_table("data/sio2_water_2_1_temp_pressure_to_density.txt", 0.0)
+    return temp_pressure_to_density_table("data/sio2_water_2_1_temp_pressure_to_density.txt", "2:1 rock:water", 0.0)
 
 def sio2_water_3_1_density_table():
-    return temp_pressure_to_density_table("data/sio2_water_3_1_temp_pressure_to_density.txt", 0.0)
+    return temp_pressure_to_density_table("data/sio2_water_3_1_temp_pressure_to_density.txt", "3:1 rock:water", 0.0)
 
 def sio2_water_4_1_density_table():
-    return temp_pressure_to_density_table("data/sio2_water_4_1_temp_pressure_to_density.txt", 0.0)
+    return temp_pressure_to_density_table("data/sio2_water_4_1_temp_pressure_to_density.txt", "4:1 rock:water", 0.0)
     
 def build_catalog(catalog_name, table_list):
     global temperature_catalog_cache
@@ -396,14 +418,17 @@ def non_log_sio2_water_env_catalog():
 def dunite_water_env_catalog():
     return build_catalog("dunite_water_env_catalog", [env_density_table(), water_density_table(), dunite_density_table()])
 
+def iron_sio2_water_env_catalog():
+    return build_catalog("iron_dunite_water_env_catalog", [env_density_table(), water_density_table(), dunite_density_table(), iron_density_table()])
+
 def allona_model_catalog():
     return build_catalog("allona_model_catalog", [allona_env_density_table(), sio2_water_2_1_density_table(), sio2_density_table()])
 
 def sio2_water_2_1_catalog():
-    return build_catalog("allona_model_catalog", [env_density_table(), sio2_water_2_1_density_table(), sio2_density_table()])
+    return build_catalog("sio2_water_2_1_model_catalog", [env_density_table(), sio2_water_2_1_density_table(), sio2_density_table()])
 
 def sio2_water_3_1_catalog():
-    return build_catalog("allona_model_catalog", [env_density_table(), sio2_water_3_1_density_table(), sio2_density_table()])
+    return build_catalog("sio2_water_3_1_catalog", [env_density_table(), sio2_water_3_1_density_table(), sio2_density_table()])
 
 def sio2_water_4_1_catalog():
-    return build_catalog("allona_model_catalog", [env_density_table(), sio2_water_4_1_density_table(), sio2_density_table()])
+    return build_catalog("sio2_water_4_1_catalog", [env_density_table(), sio2_water_4_1_density_table(), sio2_density_table()])

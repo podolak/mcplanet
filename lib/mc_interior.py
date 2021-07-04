@@ -7,78 +7,74 @@ import lib.temperature   as temperature
 from lib.mc_density      import MCDensity, create_mcdensity
 
 class MCInterior(MCDensity):
-    def __init__(self, radii, densities, rock, env, catalog, fixed_density=True, use_cgs=True):
+    def __init__(self, radii, densities, mix, catalog, fixed_density=True, use_cgs=True):
         super(MCInterior, self).__init__(radii, densities, fixed_density)
-        self._rock = rock
-        self._env = env
-        self._cgs = use_cgs
+        self._mix = np.array(mix)
         self._catalog = catalog
 
-    def get_rock_pct(self):
-        return self._rock
-
-    def get_env_pct(self):
-        return self._env
-
-    def plot_rock(self):
-        plt.plot(self._radii, self._rock, label="rock ratio")
-
-    def plot_env(self):
-        plt.plot(self._radii, self._env, label="env ratio")
-        
-    def plot_water(self):
-        plt.plot(self._radii, 1.0-np.array(self._rock)-np.array(self._env), label="water ratio")
-
-    def compute_env_mass(self):
-        return physical.compute_mass(self._radii, self._densities*self._env, self._fixed_density)
-
-    def compute_rock_mass(self):
-        return physical.compute_mass(self._radii, self._densities*self._rock, self._fixed_density)
-
-    def compute_water_mass(self):
-        total_mass = self.get_mass()
-        return total_mass-self.compute_env_mass()-self.compute_rock_mass()
-
-    def compute_rock_water_ratio(self):
-        return self.compute_rock_mass()/self.compute_water_mass()
-
-    def compute_composition(self):
-        return [temperature.mix3_to_composition(rock, 0, env) for (rock, env) in zip(self._rock, self._env)]
+    def get_mix(self):
+        cols = self._mix.shape[1]
+        return [self._mix[:,i] for i in range(cols)]
     
-    def compute_ratios(self):
-            r = self.compute_rock_mass()/self.get_mass()
-            w = self.compute_water_mass()/self.get_mass()
-            e = self.compute_env_mass()/self.get_mass()
-            return round(r,2), round(w,2), round(e,2)
+    def get_composition(self):
+        return [self._catalog.mix_to_composition(x) for x in self._mix]
+    
+    def plot_mix(self):
+        names = self._catalog.get_table_names()
+        mix = self.get_mix()
+        for name, material in zip(names, mix):
+            plt.plot(self._radii, material, label=name)
+        plt.legend()
+    
+    def plot_composition(self):
+        plt.plot(self._radii, self.get_composition(), label="composition")
+        plt.legend()
+        
+    def get_mix_mass(self, name):
+        names = self._catalog.get_table_names()
+        for i in range(len(names)):
+            if names[i] == name:
+                comp = self.get_mix()[i]
+                return physical.compute_mass(self._radii, self._densities*comp, self._fixed_density)
+                
+        print ("Cannot find composition with name %s"%name)
+        return None
+         
+    def get_mix_ratios(self):
+        retval = []
+        for name in self._catalog.get_table_names():
+            retval.append(round(self.get_mix_mass(name)/self.get_mass(), 2))
+        return retval
 
-    def get_temp(self, temp_catalog=None):
-        if temp_catalog is None:
-            temp_catalog = self._catalog
-      
+    def get_temp(self):
         pressures = self.get_pressure()
         temps = []
-        for rho, p, r_pct, e_pct in zip(self._densities, pressures, self._rock, self._env):
-            composition = temperature.mix3_to_composition(r_pct, None, e_pct) 
-            temps.append(temp_catalog.get_temp(composition, rho, p))
+        for rho, p, mix in zip(self._densities, pressures, self._mix):
+            comp = self._catalog.mix_to_composition(mix)
+            temps.append(self._catalog.get_temp(comp, rho, p))
         return np.array(temps)
     
-    def inner_temp(self, temp_catalog=None):
-        if temp_catalog is None:
-            temp_catalog = self._catalog
-      
+    def get_inner_temp(self):
         pressure = self.get_pressure()[0]
-        composition = temperature.mix3_to_composition(self._rock[0], None, self._env[0])
+        mix= self._mix[0]
         density = self._densities[0]
-        return temp_catalog.get_temp(composition, density, pressure)
+        composition = self._catalog.mix_to_composition(mix)
+        return self._catalog.get_temp(composition, density, pressure)
 
-    def plot_temp(self, catalog=None, label="Temperature"):
-        plt.plot(self._radii, self.get_temp(catalog), label=label)
+    def plot_temp(self, label="Temperature"):
+        plt.plot(self._radii, self.get_temp(), label=label)
+        
+        
+# Need to rebuild this into a general factory for random composition.
+# The idea would be to either generate the outer mix and move inward 
+# (maybe binary split?).   Alternatively, create a single monotonic 
+# composition and interpret.  Get the ratios one at a time?  Would
+# That be too much smoothing?
 
+""""
 class MCInteriorFactory(object):
-    def __init__(self, pct_rock, pct_env, density_model):
-        self._r = pct_rock
-        self._e = pct_env
-        self._w = 1.0-pct_rock-pct_env
+    def __init__(self, catalog, mix_ratio, density_model):
+     
         self._model = density_model
         self._mass = density_model.get_mass()
         self._shells = density_model._radii
@@ -190,4 +186,4 @@ def create_mcinterior(mass, moment_ratio, radius, pct_rock, pct_env, catalog, nu
     # Otherwise, we're recreating the MCDensity over again.
     return MCInterior(mcdensity._radii, mcdensity._densities, rock, env, catalog)
 
-
+"""

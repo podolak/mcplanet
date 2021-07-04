@@ -24,20 +24,13 @@ class TemperatureProfile(object):
         self._model = density_model
         
     # Diagnostic.   Print out the temperature profile
-    def plot_profile(self):
+    def plot_temperature_profile(self):
         num_shells = len(self._model.get_radii())
-        for comp in self._catalog._compositions:
-            rock, water, env = temperature.composition_to_mix3(comp)
-            mcinterior = mc_interior.MCInterior(self._model._radii, self._model._densities, np.ones(num_shells)*rock, np.ones(num_shells)*env)
-            mcinterior.plot_temp(label=comp)
-
-    # Diagnostic.   Print out the temperature profile for the rock/env curves.
-    def plot_temperature_profiles(self):
-        num_shells = len(self._model.get_radii())
-        for comp in self._catalog._compositions:
-            rock, water, env = temperature.composition_to_mix3(comp)
-            mcinterior = mc_interior.MCInterior(self._model._radii, self._model._densities, np.ones(num_shells)*rock, np.ones(num_shells)*env, self._catalog)
-            mcinterior.plot_temp(label=comp)
+        for comp, name in zip(self._catalog._compositions, self._catalog.get_table_names()):
+            mix = self._catalog.composition_to_mix(comp)
+            mcinterior = mc_interior.MCInterior(self._model._radii, self._model._densities, np.outer(np.ones(num_shells), mix), self._catalog)
+            mcinterior.plot_temp(label=name)
+        plt.legend()
             
     # Diagnostic.   Print out a curve that shows composition assuming a temperature of temp
     def plot_temp_curve(self, temp):
@@ -50,6 +43,7 @@ class TemperatureProfile(object):
             comps.append(self._catalog.get_composition(temp, rho[i], p[i]))
             
         plt.plot(rad, comps, label=temp)
+        plt.legend()
 
     def _monotonic_composition(self, max_temp):
         # So the idea here is to create an MCInterior that
@@ -291,17 +285,14 @@ class TemperatureProfile(object):
                     #import ipdb;ipdb.set_trace()
                     return None, None
                 count = count +1
-                mix.append(temperature.composition_to_mix3(prev))
+                mix.append(self._catalog.composition_to_mix(prev))
             else:
-                mix.append(temperature.composition_to_mix3(comp))
+                mix.append(self._catalog.composition_to_mix(comp))
                 prev = comp
                 
-        #if inverse:
-        #    mix = list(reversed(mix))
-        rock, water, env = zip(*mix)
         if count > 0.10 * len(rad):
             return None, None
-        return mc_interior.MCInterior(rad, rho, rock, env, self._catalog), count
+        return mc_interior.MCInterior(rad, rho,  mix, self._catalog), count
     
     
 def get_fixed_temp_model(mass, moment_ratio, radius, num_shells, 
@@ -322,9 +313,9 @@ def get_fixed_temp_model(mass, moment_ratio, radius, num_shells,
     if inter is None:
         return seed, None, None, None
     
-    inner_temp = inter.inner_temp()
+    inner_temp = inter.get_inner_temp()
     if full_model:
         return seed, inter, inner_temp, count
     
     else:
-        return seed, inter.compute_ratios(), inner_temp, count
+        return seed, inter.get_mix_ratios(), inner_temp, count
