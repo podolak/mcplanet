@@ -26,8 +26,8 @@ class MCInterior(MCDensity):
             plt.plot(self._radii, material, label=name)
         plt.legend()
     
-    def plot_composition(self):
-        plt.plot(self._radii, self.get_composition(), label="composition")
+    def plot_composition(self, label="composition"):
+        plt.plot(self._radii, self.get_composition(), label=label)
         plt.legend()
         
     def get_mix_mass(self, name):

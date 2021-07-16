@@ -32,12 +32,12 @@ class MCDensity(object):
     def get_mass_moment_ratio(self):
         return self.get_moment()/(self.get_mass()*self.radius()*self.radius())
 
-    def plot_densities(self):
-        plt.plot(self._radii, self._densities, label="density")
+    def plot_densities(self, label="density"):
+        plt.plot(self._radii, self._densities, label=label)
         plt.legend()
 
-    def plot_pressure(self):
-        plt.plot(self._radii, self.get_pressure(), label="pressure")
+    def plot_pressure(self, label="pressure"):
+        plt.plot(self._radii, self.get_pressure(), label=label)
 
 class MCDensityFactory(object):
     def __init__(self, mass, moment_ratio, radius, shells=None, num_shells=100, smooth=101, fixed_density=True):

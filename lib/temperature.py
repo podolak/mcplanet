@@ -419,7 +419,7 @@ def dunite_water_env_catalog():
     return build_catalog("dunite_water_env_catalog", [env_density_table(), water_density_table(), dunite_density_table()])
 
 def iron_sio2_water_env_catalog():
-    return build_catalog("iron_dunite_water_env_catalog", [env_density_table(), water_density_table(), dunite_density_table(), iron_density_table()])
+    return build_catalog("iron_dunite_water_env_catalog", [env_density_table(), water_density_table(), sio2_density_table(), iron_density_table()])
 
 def allona_model_catalog():
     return build_catalog("allona_model_catalog", [allona_env_density_table(), sio2_water_2_1_density_table(), sio2_density_table()])
