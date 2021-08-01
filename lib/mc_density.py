@@ -34,10 +34,15 @@ class MCDensity(object):
 
     def plot_densities(self, label="density"):
         plt.plot(self._radii, self._densities, label=label)
+        plt.xlabel('radius (cm)')
+        plt.ylabel('density (g/cc)')
         plt.legend()
 
     def plot_pressure(self, label="pressure"):
         plt.plot(self._radii, self.get_pressure(), label=label)
+        plt.xlabel('radius (cm)')
+        plt.ylabel('pressure (dyne/cm^2)')
+        plt.legend()
 
 class MCDensityFactory(object):
     def __init__(self, mass, moment_ratio, radius, shells=None, num_shells=100, smooth=101, fixed_density=True):

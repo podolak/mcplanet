@@ -24,10 +24,14 @@ class MCInterior(MCDensity):
         mix = self.get_mix()
         for name, material in zip(names, mix):
             plt.plot(self._radii, material, label=name)
+        plt.xlabel('radius (cm)')
+        plt.ylabel('percent material')
         plt.legend()
     
     def plot_composition(self, label="composition"):
         plt.plot(self._radii, self.get_composition(), label=label)
+        plt.xlabel('radius (cm)')
+        plt.ylabel('composition')
         plt.legend()
         
     def get_mix_mass(self, name):
@@ -63,6 +67,9 @@ class MCInterior(MCDensity):
 
     def plot_temp(self, label="Temperature"):
         plt.plot(self._radii, self.get_temp(), label=label)
+        plt.xlabel('radius (cm)')
+        plt.ylabel('temperature (K)')
+        plt.legend()
         
         
 # Need to rebuild this into a general factory for random composition.
