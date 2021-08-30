@@ -299,7 +299,7 @@ def get_fixed_temp_model(mass, moment_ratio, radius, num_shells,
                          max_temp, temperature_catalog, smooth=101, 
                          inverse=False, seed=None, full_model= False):
     if seed == None:
-        seed = round(random.random(),9)
+        seed = round(1000.0*random.random(),9)
     random.seed(seed)
 
     
