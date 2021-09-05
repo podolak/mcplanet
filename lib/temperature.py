@@ -119,6 +119,11 @@ class TemperatureTable(object):
             return None
         
         # Bilinear interpolation
+        #rval = self._density[t1p1_idx] * (10**self._temp[t2_idx] - 10**temperature)/(10**self._temp[t2_idx] - 10**self._temp[t1_idx]) * (10**self._pressure[t1p2_idx] - 10**pressure)/(10**self._pressure[t1p2_idx] - 10**self._pressure[t1p1_idx]) + \
+        #       self._density[t1p2_idx] * (10**self._temp[t2_idx] - 10**temperature)/(10**self._temp[t2_idx] - 10**self._temp[t1_idx]) * (10**pressure - 10**self._pressure[t1p1_idx])/(10**self._pressure[t1p2_idx] - 10**self._pressure[t1p1_idx]) + \
+        #       self._density[t2p1_idx] * (10**temperature - 10**self._temp[t1_idx])/(10**self._temp[t2_idx] - 10**self._temp[t1_idx]) * (10**self._pressure[t2p2_idx] - 10**pressure)/(10**self._pressure[t2p2_idx] - 10**self._pressure[t2p1_idx]) + \
+        #       self._density[t2p2_idx] * (10**temperature - 10**self._temp[t1_idx])/(10**self._temp[t2_idx] - 10**self._temp[t1_idx]) * (10**pressure - 10**self._pressure[t2p1_idx])/(10**self._pressure[t2p2_idx] - 10**self._pressure[t2p1_idx])
+        
         rval = self._density[t1p1_idx] * (self._temp[t2_idx] - temperature)/(self._temp[t2_idx] - self._temp[t1_idx]) * (self._pressure[t1p2_idx] - pressure)/(self._pressure[t1p2_idx] - self._pressure[t1p1_idx]) + \
                self._density[t1p2_idx] * (self._temp[t2_idx] - temperature)/(self._temp[t2_idx] - self._temp[t1_idx]) * (pressure - self._pressure[t1p1_idx])/(self._pressure[t1p2_idx] - self._pressure[t1p1_idx]) + \
                self._density[t2p1_idx] * (temperature - self._temp[t1_idx])/(self._temp[t2_idx] - self._temp[t1_idx]) * (self._pressure[t2p2_idx] - pressure)/(self._pressure[t2p2_idx] - self._pressure[t2p1_idx]) + \
@@ -199,6 +204,7 @@ class TemperatureTable(object):
 #########################################################################
 # TemperatureTable
 #########################################################################
+
 class TemperatureCatalog(object):
     def __init__(self, name, tables):
         self._name = name
@@ -218,6 +224,8 @@ class TemperatureCatalog(object):
     
     def composition_to_mix(self, composition):
         retval = self._compositions*0.0
+        if composition is None:
+            return retval
         c_below = np.where(self._compositions <= composition)[0]
         if len(c_below) > 0:
             c_below = c_below[-1]
@@ -368,7 +376,57 @@ def temp_pressure_to_density_table(filename, name, comp):
     rho = [float(x[2]) for x in data]
     return TemperatureTable(comp, name, 10**np.array(t), 10**np.array(p), 10**np.array(rho))
 
+def raw_temp_density_to_pressure_table(filename, name, comp):
+    data = [i.strip('\n').split() for i in open(filename)][7:]
+    temp = [float(x[0]) for x in data]
+    density = [float(x[1]) for x in data]
+    pressure = [float(x[2]) for x in data]
 
+    # Convert units
+
+    # Temperature is in Kev, so mutiple by 1.16e7
+    temp = 10**np.array(temp)*1.1605e7
+
+    # Density is in gr/cc, so no conversion
+    density = 10**np.array(density)
+
+    # Pressure is in krk/cc, so mupltiply by 1e16 (I think?)
+    pressure = 10**np.array(pressure)*1e16
+
+    t_table = TemperatureTable(comp, name, temp, pressure, density)
+    return t_table
+
+
+def load_temp_pressure_EOS_file(filename, name, comp):
+    data = [i.strip('\n').split() for i in open(filename)][1:]
+    vals = [x for x in filter(lambda x:len(x)==10, data)]
+    
+    temp = [float(x[0]) for x in vals]
+    pressure = [float(x[1]) for x in vals]
+    density = [float(x[2]) for x in vals]
+
+    # Convert units
+    temp = 10**np.array(temp)
+
+    # Density is in gr/cc, so no conversion
+    density = 10**np.array(density)
+
+    # Pressure is in GPa, so mupltiply by 1e10 (I think?)
+    pressure = 10**np.array(pressure)*1e10
+
+    t_table = TemperatureTable(comp, name, temp, pressure, density)
+    
+    return t_table
+
+def raw_sio2_AV_table():
+    return raw_temp_density_to_pressure_table("data/raw_files/SiO2_newtab_AV.dat", "SiO2_raw", 1.0)
+
+def raw_water_AV_table():
+    return raw_temp_density_to_pressure_table("data/raw_files/H2O_newtab_AV.dat", "water", 0.0)
+
+def raw_iron_AV_table():
+     return raw_temp_density_to_pressure_table("data/raw_files/Fe_newtab_AV.dat", "iron", 2.0)
+    
 def sio2_density_table():
      return temp_pressure_to_density_table("data/SiO2_temp_pressure_to_density.txt", "SiO2", 1.0)
     
@@ -383,6 +441,12 @@ def water_density_table():
 
 def env_density_table():
     return temp_pressure_to_density_table("data/env_temp_pressure_to_density.txt", "env", -1.0)
+
+def eos_env_density_table():
+    return load_temp_pressure_EOS_file("data/raw_files/TABLEEOS_2021_TP_Y0275_v1","env", -1.0)
+
+def H_density_table():
+    return temp_pressure_to_density_table("data/H_temp_pressure_to_density.txt", "env", -1.0)
 
 def allona_env_density_table():
     return temp_pressure_to_density_table("data/allona_env_temp_pressure_to_density.txt", "allona_env", -1.0)
@@ -418,8 +482,14 @@ def non_log_sio2_water_env_catalog():
 def dunite_water_env_catalog():
     return build_catalog("dunite_water_env_catalog", [env_density_table(), water_density_table(), dunite_density_table()])
 
+def iron_sio2_water_eos_env_catalog():
+    return build_catalog("iron_dunite_water_env_catalog", [eos_env_density_table(), water_density_table(), sio2_density_table(), iron_density_table()])
+
 def iron_sio2_water_env_catalog():
     return build_catalog("iron_dunite_water_env_catalog", [env_density_table(), water_density_table(), sio2_density_table(), iron_density_table()])
+
+def iron_sio2_water_H_catalog():
+    return build_catalog("iron_dunite_water_H_catalog", [H_density_table(), water_density_table(), sio2_density_table(), iron_density_table()])
 
 def allona_model_catalog():
     return build_catalog("allona_model_catalog", [allona_env_density_table(), sio2_water_2_1_density_table(), sio2_density_table()])
@@ -432,3 +502,9 @@ def sio2_water_3_1_catalog():
 
 def sio2_water_4_1_catalog():
     return build_catalog("sio2_water_4_1_catalog", [env_density_table(), sio2_water_4_1_density_table(), sio2_density_table()])
+
+def raw_iron_sio2_water_env_catalog():
+    return build_catalog("raw_iron_sio2_water_env_catalog", [env_density_table(), raw_water_AV_table(), raw_sio2_AV_table(), raw_iron_AV_table()])
+
+def raw_sio2_water_env_catalog():
+    return build_catalog("raw_sio2_water_env_catalog", [env_density_table(), raw_water_AV_table(), raw_sio2_AV_table()])
