@@ -31,6 +31,26 @@ class TemperatureProfile(object):
             mcinterior = mc_interior.MCInterior(self._model._radii, self._model._densities, np.outer(np.ones(num_shells), mix), self._catalog)
             mcinterior.plot_temp(label=name)
         plt.legend()
+        
+    # Diagnostic.   Print out the temperature profile
+    def plot_water_env_temperature_profile(self):
+        num_shells = len(self._model.get_radii())
+        for i in range(11):
+            comp = -1.0 + i/10.0
+            mix = self._catalog.composition_to_mix(comp)
+            mcinterior = mc_interior.MCInterior(self._model._radii, self._model._densities, np.outer(np.ones(num_shells), mix), self._catalog)
+            mcinterior.plot_temp(label=round(comp,1))
+        plt.legend()
+        
+    # Diagnostic.   Print out the temperature profile
+    def plot_rock_water_temperature_profile(self):
+        num_shells = len(self._model.get_radii())
+        for i in range(11):
+            comp = 0.0 + i/10.0
+            mix = self._catalog.composition_to_mix(comp)
+            mcinterior = mc_interior.MCInterior(self._model._radii, self._model._densities, np.outer(np.ones(num_shells), mix), self._catalog)
+            mcinterior.plot_temp(label=round(comp,1))
+        plt.legend()
             
     # Diagnostic.   Print out a curve that shows composition assuming a temperature of temp
     def plot_temp_curve(self, temp):
