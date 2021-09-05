@@ -476,6 +476,9 @@ def Z_env_catalog():
 def sio2_water_env_catalog():
     return build_catalog("sio2_water_env_catalog", [env_density_table(), water_density_table(), sio2_density_table()])
 
+def sio2_water_eos_env_catalog():
+    return build_catalog("sio2_water_eos_env_catalog", [eos_env_density_table(), water_density_table(), sio2_density_table()])
+
 def non_log_sio2_water_env_catalog():
     return build_catalog("non_log_sio2_water_env_catalog", [env_density_table(), non_log_water_density_table(), non_log_sio2_density_table()])
 
@@ -483,7 +486,7 @@ def dunite_water_env_catalog():
     return build_catalog("dunite_water_env_catalog", [env_density_table(), water_density_table(), dunite_density_table()])
 
 def iron_sio2_water_eos_env_catalog():
-    return build_catalog("iron_dunite_water_env_catalog", [eos_env_density_table(), water_density_table(), sio2_density_table(), iron_density_table()])
+    return build_catalog("iron_sio2_water_eos_env_catalog", [eos_env_density_table(), water_density_table(), sio2_density_table(), iron_density_table()])
 
 def iron_sio2_water_env_catalog():
     return build_catalog("iron_dunite_water_env_catalog", [env_density_table(), water_density_table(), sio2_density_table(), iron_density_table()])
