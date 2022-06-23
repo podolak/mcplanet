@@ -7,5 +7,5 @@ class Planet():
         self.moment_ratio = moment_ratio
         self.radius = radius
         
-URANUS = Planet(8.7e28, 0.23, 2.5e9)   
+URANUS = Planet(8.68e28, 0.23, 2.54e9)   
 

@@ -476,6 +476,7 @@ def build_catalog(catalog_name, table_list):
         temperature_catalog_cache[catalog_name] = TemperatureCatalog(catalog_name, table_list)
     return temperature_catalog_cache[catalog_name]
         
+"""
 def Z_env_catalog():
     return build_catalog("mix_env_catalog", [env_density_table(), Z_density_table(), dunite_density_table()])
 
@@ -490,13 +491,14 @@ def non_log_sio2_water_env_catalog():
 
 def dunite_water_env_catalog():
     return build_catalog("dunite_water_env_catalog", [env_density_table(), water_density_table(), dunite_density_table()])
-
+"""
 def iron_sio2_water_eos_env_catalog():
     return build_catalog("iron_sio2_water_eos_env_catalog", [eos_env_density_table(), water_density_table(), sio2_density_table(), iron_density_table()])
 
 def iron_sio2_co_water_env_catalog():
-    return build_catalog("iron_sio2_co_water_env_catalog", [env_density_table(), water_density_table(), co_density_table(1), sio2_density_table(2), iron_density_table(3)])
+    return build_catalog("iron_sio2_co_water_env_catalog", [eos_env_density_table(), water_density_table(), co_density_table(1), sio2_density_table(2), iron_density_table(3)])
 
+"""
 def iron_sio2_eos_env_catalog():
     return build_catalog("iron_sio2_eos_env_catalog", [eos_env_density_table(), sio2_density_table(0.0), iron_density_table(1.0)])
 
@@ -508,9 +510,11 @@ def iron_sio2_water_env_catalog():
 
 def iron_sio2_water_H_catalog():
     return build_catalog("iron_dunite_water_H_catalog", [H_density_table(), water_density_table(), sio2_density_table(), iron_density_table()])
-
+"""
 def allona_model_catalog():
     return build_catalog("allona_model_catalog", [allona_env_density_table(), sio2_water_2_1_density_table(), sio2_density_table()])
+"""
+# Experimental catalogs
 
 def sio2_water_2_1_catalog():
     return build_catalog("sio2_water_2_1_model_catalog", [env_density_table(), sio2_water_2_1_density_table(), sio2_density_table()])
@@ -526,3 +530,4 @@ def raw_iron_sio2_water_env_catalog():
 
 def raw_sio2_water_env_catalog():
     return build_catalog("raw_sio2_water_env_catalog", [env_density_table(), raw_water_AV_table(), raw_sio2_AV_table()])
+"""
