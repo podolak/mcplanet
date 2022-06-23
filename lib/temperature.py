@@ -495,7 +495,7 @@ def dunite_water_env_catalog():
 def iron_sio2_water_eos_env_catalog():
     return build_catalog("iron_sio2_water_eos_env_catalog", [eos_env_density_table(), water_density_table(), sio2_density_table(), iron_density_table()])
 
-def iron_sio2_co_water_env_catalog():
+def iron_sio2_co_water_eos_env_catalog():
     return build_catalog("iron_sio2_co_water_env_catalog", [eos_env_density_table(), water_density_table(), co_density_table(1), sio2_density_table(2), iron_density_table(3)])
 
 """
