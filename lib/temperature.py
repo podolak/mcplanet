@@ -376,8 +376,8 @@ def temp_pressure_to_density_table(filename, name, comp):
     rho = [float(x[2]) for x in data]
     return TemperatureTable(comp, name, 10**np.array(t), 10**np.array(p), 10**np.array(rho))
 
-def raw_temp_density_to_pressure_table(filename, name, comp):
-    data = [i.strip('\n').split() for i in open(filename)][7:]
+def raw_temp_density_to_pressure_table(filename, name, comp, header_size=7):
+    data = [i.strip('\n').split() for i in open(filename)][header_size:]
     temp = [float(x[0]) for x in data]
     density = [float(x[1]) for x in data]
     pressure = [float(x[2]) for x in data]
@@ -418,20 +418,26 @@ def load_temp_pressure_EOS_file(filename, name, comp):
     
     return t_table
 
-def raw_sio2_AV_table():
-    return raw_temp_density_to_pressure_table("data/raw_files/SiO2_newtab_AV.dat", "SiO2_raw", 1.0)
+def raw_co_AV_table(comp_val = 0.5):
+    return raw_temp_density_to_pressure_table("data/raw_files/COtable.txt", "CO_raw", comp_val)
 
-def raw_water_AV_table():
-    return raw_temp_density_to_pressure_table("data/raw_files/H2O_newtab_AV.dat", "water", 0.0)
+def raw_sio2_AV_table(comp_val= 1.0):
+    return raw_temp_density_to_pressure_table("data/raw_files/SiO2_newtab_AV.dat", "SiO2_raw", comp_val)
 
-def raw_iron_AV_table():
-     return raw_temp_density_to_pressure_table("data/raw_files/Fe_newtab_AV.dat", "iron", 2.0)
+def raw_water_AV_table(comp_val=0.0):
+    return raw_temp_density_to_pressure_table("data/raw_files/H2O_newtab_AV.dat", "water", comp_val)
+
+def raw_iron_AV_table(comp_val=2.0):
+     return raw_temp_density_to_pressure_table("data/raw_files/Fe_newtab_AV.dat", "iron", comp_val)
     
-def sio2_density_table():
-     return temp_pressure_to_density_table("data/SiO2_temp_pressure_to_density.txt", "SiO2", 1.0)
-    
-def iron_density_table():
-     return temp_pressure_to_density_table("data/Fe_temp_pressure_to_density.txt", "iron", 2.0)
+def sio2_density_table(comp_val=1.0):
+     return temp_pressure_to_density_table("data/SiO2_temp_pressure_to_density.txt", "SiO2", comp_val)
+
+def co_density_table(comp_val=0.5):
+    return temp_pressure_to_density_table("data/CO_temp_pressure_to_density.txt", "CO", comp_val)
+
+def iron_density_table(comp_val=2.0):
+     return temp_pressure_to_density_table("data/Fe_temp_pressure_to_density.txt", "iron", comp_val)
     
 def dunite_density_table():
     return temp_pressure_to_density_table("data/dunite_temp_pressure_to_density.txt", "dunite", 1.0)
@@ -487,6 +493,15 @@ def dunite_water_env_catalog():
 
 def iron_sio2_water_eos_env_catalog():
     return build_catalog("iron_sio2_water_eos_env_catalog", [eos_env_density_table(), water_density_table(), sio2_density_table(), iron_density_table()])
+
+def iron_sio2_co_water_env_catalog():
+    return build_catalog("iron_sio2_co_water_env_catalog", [env_density_table(), water_density_table(), co_density_table(1), sio2_density_table(2), iron_density_table(3)])
+
+def iron_sio2_eos_env_catalog():
+    return build_catalog("iron_sio2_eos_env_catalog", [eos_env_density_table(), sio2_density_table(0.0), iron_density_table(1.0)])
+
+def iron_eos_env_catalog():
+    return build_catalog("iron_eos_env_catalog", [eos_env_density_table(), iron_density_table(0.0)])
 
 def iron_sio2_water_env_catalog():
     return build_catalog("iron_dunite_water_env_catalog", [env_density_table(), water_density_table(), sio2_density_table(), iron_density_table()])
