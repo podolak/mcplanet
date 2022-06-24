@@ -71,6 +71,53 @@ class MCInterior(MCDensity):
         plt.ylabel('temperature (K)')
         plt.legend()
         
+    def plot_composition_density(self):
+        temps = self.get_temp()
+        pressure = self.get_pressure()
+        plt.plot(self._radii, self._densities, label="actual")
+        def get_comp_density(tbl):
+            rho= []
+            for t,p in zip(temps, pressure):
+                rho.append(tbl.get_density(t,p))
+            return rho
+        for t in self._catalog._tables:
+            name = t._name
+            plt.plot(self._radii, get_comp_density(t), label=name)
+        plt.xlabel('radius (cm)')
+        plt.ylabel('density (g/cc)')
+        plt.legend()
+            
+            
+    def debug_shell(self, radius=None, shell=None):
+        if shell is None and radius is None:
+            print("Need to specify radius or shell number")
+        
+        if radius is not None:
+            # convert radius to shell
+            r_above = np.where(self._radii > radius)[0]
+            if len(r_above) > 0:
+                shell = r_above[0]
+            else:
+                print("radius too high")
+                return 0.0
+        if shell >= len(self._radii):
+            print("shell index too high")
+        
+        # Print stats:
+        print("shell index is %s"%shell)
+        print("radius is %s"%self._radii[shell])
+        print("density is %s (%s)"%(self._densities[shell], np.log10(self._densities[shell])))
+        print("pressure is %s (%s)"%(self.get_pressure()[shell], np.log10(self.get_pressure()[shell])))
+        print("composition is %s"%self.get_composition()[shell])
+        print("temperature is %s (%s)"%(self.get_temp()[shell], np.log10(self.get_temp()[shell])))
+        for t in self._catalog._tables:
+            name = t._name
+            temp = t.implied_temperature(self._densities[shell], self.get_pressure()[shell])
+            print("implied temp of pure %s would be %s"%(name, temp if temp is None else 10**temp))
+        for t in self._catalog._tables:
+            name = t._name
+            print("density of pure %s would be %s"%(name, t.get_density(self.get_temp()[shell], self.get_pressure()[shell])))
+        
         
 # Need to rebuild this into a general factory for random composition.
 # The idea would be to either generate the outer mix and move inward 
