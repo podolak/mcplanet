@@ -47,7 +47,7 @@ class MCInterior(MCDensity):
     def get_mix_ratios(self):
         retval = []
         for name in self._catalog.get_table_names():
-            retval.append(self.get_mix_mass(name)/self.get_mass(), 2)
+            retval.append(self.get_mix_mass(name)/self.get_mass())
         return retval
 
     def get_temp(self):
