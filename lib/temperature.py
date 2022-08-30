@@ -131,25 +131,31 @@ class TemperatureTable(object):
         return 10**rval
 
 
-    def max_log_temp(self, pressure, num_steps=20):
+    def max_log_temp(self, pressure, num_steps=20, debug=False):
         # First try max temp
         if self.get_density(10**self._temp.max(), pressure) is not None:
             return self._temp.max()
 
         # Find a point that is not none
-        step = self._temp.max()-self._temp.min()
-        for i in range(1, num_steps):
+        step = (self._temp.max()-self._temp.min())/num_steps
+        for i in range(1, num_steps+1):
             cur_temp = self._temp.max()-step*i
-            if cur_temp is None:
+            if (debug):
+                print (i, cur_temp)
+            if self.get_density(10**cur_temp, pressure) is None:
                 continue
 
             else:
                 # Use binary search to find true minimum
                 max_temp = cur_temp + step
                 min_temp = cur_temp
+                if (debug):
+                    print(min_temp, max_temp)
                 for i in range(20):
                     cur_temp = 0.5 * (min_temp+max_temp)
                     cur_rho = self.get_density(10**cur_temp, pressure)
+                    if (debug):
+                        print (i, cur_temp, cur_rho)
                     if cur_rho is None:
                         max_temp = cur_temp
                     else:
@@ -163,8 +169,8 @@ class TemperatureTable(object):
             return self._temp.min()
 
         # Find a point that is not none
-        step = self._temp.max()-self._temp.min()
-        for i in range(1, num_steps):
+        step = (self._temp.max()-self._temp.min())/num_steps
+        for i in range(1, num_steps+1):
             cur_temp = self._temp.min()+step*i
             if cur_temp is None:
                 continue
@@ -185,7 +191,7 @@ class TemperatureTable(object):
 
     def implied_temperature(self, density, pressure, force=False, debug=False):
         lowest_temp = self.min_log_temp(max(pressure, MIN_LOG_VAL))
-        highest_temp = self.max_log_temp(max(pressure, MIN_LOG_VAL))
+        highest_temp = self.max_log_temp(max(pressure, MIN_LOG_VAL), debug=debug)
         low_log_temp = lowest_temp
         high_log_temp = highest_temp
         for i in range(20):
@@ -268,6 +274,25 @@ class TemperatureCatalog(object):
                 min_comp = cur_comp
         return max_comp
         
+    def max_log_temp(self, composition, pressure):
+        c_below = np.where(self._compositions <= composition)[0]
+        if len(c_below) > 0:
+            c_below = c_below[-1]
+        else:
+            c_below = None
+
+        c_above = np.where(self._compositions >= composition)[0]
+        if len(c_above) > 0:
+            c_above = c_above[0]
+        else:
+            c_above = None
+
+        if c_above is None or c_below is None:
+            return None
+        t_above = self._tables[c_above]
+        t_below = self._tables[c_below]        
+        return min(t_above.max_log_temp(pressure), t_below.max_log_temp(pressure))
+        
     def get_temp(self, composition, density, pressure, debug=False):
         try:
             c_below = np.where(self._compositions <= composition)[0]
@@ -297,6 +322,8 @@ class TemperatureCatalog(object):
             min_temp = t_below.implied_temperature(density, pressure, True)
             max_temp = t_above.implied_temperature(density, pressure, True)
         except:
+            if (debug):
+                import ipdb;ipdb.set_trace()
             return None
         if min_temp == max_temp:
             if t_below.implied_temperature(density, pressure) is not None:
@@ -436,6 +463,9 @@ def sio2_density_table(comp_val=1.0):
 def co_density_table(comp_val=0.5):
     return temp_pressure_to_density_table("data/CO_temp_pressure_to_density.txt", "CO", comp_val)
 
+def ch4_density_table(comp_val=-0.5):
+    return temp_pressure_to_density_table("data/CH4_temp_pressure_to_density.txt", "CH4", comp_val)
+
 def iron_density_table(comp_val=2.0):
      return temp_pressure_to_density_table("data/Fe_temp_pressure_to_density.txt", "iron", comp_val)
     
@@ -445,11 +475,11 @@ def dunite_density_table():
 def water_density_table():
     return temp_pressure_to_density_table("data/water_temp_pressure_to_density.txt", "water", 0.0)
 
-def env_density_table():
-    return temp_pressure_to_density_table("data/env_temp_pressure_to_density.txt", "env", -1.0)
+def env_density_table(comp_val=-1):
+    return temp_pressure_to_density_table("data/env_temp_pressure_to_density.txt", "env", comp_val)
 
-def eos_env_density_table():
-    return load_temp_pressure_EOS_file("data/raw_files/TABLEEOS_2021_TP_Y0275_v1","env", -1.0)
+def eos_env_density_table(comp_val=-1):
+    return load_temp_pressure_EOS_file("data/raw_files/TABLEEOS_2021_TP_Y0275_v1","env", comp_val)
 
 def H_density_table():
     return temp_pressure_to_density_table("data/H_temp_pressure_to_density.txt", "env", -1.0)
@@ -497,6 +527,12 @@ def iron_sio2_water_eos_env_catalog():
 
 def iron_sio2_co_water_eos_env_catalog():
     return build_catalog("iron_sio2_co_water_env_catalog", [eos_env_density_table(), water_density_table(), co_density_table(1), sio2_density_table(2), iron_density_table(3)])
+
+def iron_sio2_co_water_ch4_eos_env_catalog():
+    return build_catalog("iron_sio2_co_water_env_catalog", [eos_env_density_table(-2), ch4_density_table(-1), water_density_table(), co_density_table(1), sio2_density_table(2), iron_density_table(3)])
+
+def iron_sio2_water_ch4_eos_env_catalog():
+    return build_catalog("iron_sio2_water_ch4_env_catalog", [eos_env_density_table(-2), ch4_density_table(-1), water_density_table(), sio2_density_table(1), iron_density_table(2)])
 
 """
 def iron_sio2_eos_env_catalog():

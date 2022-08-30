@@ -16,6 +16,9 @@ import lib.mc_density    as mc_density
 # Fixed max temp for innermost shell.
 # Monotonic decreasing temp/pressure/density/composition.
 #
+COMP_EPS = 0.01
+TEMP_EPS = 1.0
+
 class TemperatureProfile(object):
     # The idea of a temperature profile is to take a TemperatureCatalog and MCDensity.
     # We use these to create all possible profiles and choose and interior that works.
@@ -65,7 +68,7 @@ class TemperatureProfile(object):
         plt.plot(rad, comps, label=temp)
         plt.legend()
 
-    def _monotonic_composition(self, max_temp):
+    def _monotonic_composition(self, max_temp, debug=False):
         # So the idea here is to create an MCInterior that
         # has both monotonically decreasing temp and composition
         # as you had to the surface of the planet.
@@ -79,19 +82,22 @@ class TemperatureProfile(object):
         cur_comp = self._catalog.get_composition(max_temp, rho[0], p[0])
         cur_temp = max_temp
         if cur_comp is None:
+            if debug:
+                print("failure at first shell")
             cur_comp = self._catalog.get_max_comp(rho[0], p[0])
           
         for i in range(len(rad)):
          
             temp_for_comp = self._catalog.get_temp(cur_comp, rho[i], p[i])
-
             # We'll start with comp.  
             if temp_for_comp is None:
                 # Try comp_for_temp
                 comp_for_temp = self._catalog.get_composition(cur_temp, rho[i], p[i])
-                if comp_for_temp is None or comp_for_temp > cur_comp + 0.01:
+                if comp_for_temp is None or comp_for_temp > cur_comp + COMP_EPS:
                     # So the current composition is not giving a temp.  
                     # We will just push a None for now and go to the next shtell.
+                    if debug:
+                        import ipdb;ipdb.set_trace()
                     comps.append(None)
                     temps.append(None)
                     continue  
@@ -101,7 +107,7 @@ class TemperatureProfile(object):
                     temps.append(cur_temp)
                     continue
 
-            elif temp_for_comp < cur_temp +1:
+            elif temp_for_comp < cur_temp + TEMP_EPS:
                 # This is what we want.   Just use same composition.
                 comps.append(cur_comp)
                 temps.append(temp_for_comp)
@@ -120,7 +126,7 @@ class TemperatureProfile(object):
                     continue
 
                 # Sanity check, new comp cannot be higher.
-                if (comp_for_temp > cur_comp + 0.01):
+                if (comp_for_temp > cur_comp + COMP_EPS):
                     comps.append(None)
                     temps.append(None)
                     #import ipdb;ipdb.set_trace()
@@ -172,7 +178,7 @@ class TemperatureProfile(object):
                         comps.append(None)
                         temps.append(None)
                         continue  
-                    if new_temp > cur_temp -1 and new_comp > cur_comp - 0.01:
+                    if new_temp > cur_temp - TEMP_EPS and new_comp > cur_comp - COMP_EPS:
                         cur_comp = new_comp
                         cur_temp = new_temp
                         comps.append(cur_comp)
@@ -183,7 +189,7 @@ class TemperatureProfile(object):
                         temps.append(None)
                         continue  
                     
-                if comp_for_temp > cur_comp - 0.01:
+                if comp_for_temp > cur_comp - COMP_EPS:
                     cur_comp = comp_for_temp
                     comps.append(cur_comp)
                     temps.append(cur_temp)
@@ -195,7 +201,7 @@ class TemperatureProfile(object):
                 temps.append(None)
                 continue  
                 
-            elif temp_for_comp > cur_temp -1:
+            elif temp_for_comp > cur_temp -TEMP_EPS:
                 # This is what we want.   Just use same composition.
                 comps.append(cur_comp)
                 temps.append(temp_for_comp)
@@ -216,7 +222,7 @@ class TemperatureProfile(object):
                     continue
                 
                 # Sanity check, new comp cannot be higher.
-                assert comp_for_temp >= cur_comp - 0.01, "Error: composition not monontonic"
+                assert comp_for_temp >= cur_comp - COMP_EPS, "Error: composition not monontonic"
                 
                 cur_comp = comp_for_temp
                 comps.append(comp_for_temp)
@@ -282,12 +288,12 @@ class TemperatureProfile(object):
         #return zip(rad, rho, p, comps, temps)
         return comps
     
-    def monotonic_interior(self, max_temp, inverse=False):
+    def monotonic_interior(self, max_temp, inverse=False, debug = False):
      
         if inverse:
             comps = self._inverse_monotonic_composition(max_temp)
         else:
-            comps = self._monotonic_composition(max_temp)
+            comps = self._monotonic_composition(max_temp, debug=debug)
 
         #import ipdb;ipdb.set_trace()
         # Take the resulting composition and create MCInterior object.
@@ -309,15 +315,16 @@ class TemperatureProfile(object):
             else:
                 mix.append(self._catalog.composition_to_mix(comp))
                 prev = comp
-                
-        if count > 0.10 * len(rad):
+        if debug:
+            print(comps)
+        if count > 0.20 * len(rad):
             return None, None
         return mc_interior.MCInterior(rad, rho,  mix, self._catalog), count
     
     
 def get_fixed_temp_model(mass, moment_ratio, radius, num_shells, 
                          max_temp, temperature_catalog, smooth=101, 
-                         inverse=False, seed=None, full_model= False):
+                         inverse=False, seed=None, full_model= False, debug=False):
     if seed == None:
         seed = round(1000.0*random.random(),9)
     random.seed(seed)
@@ -326,7 +333,7 @@ def get_fixed_temp_model(mass, moment_ratio, radius, num_shells,
     mcdensity = mc_density.create_mcdensity(mass, moment_ratio, radius, num_shells=num_shells, smooth=smooth)
 
     profile = TemperatureProfile(temperature_catalog, mcdensity)
-    inter, count =  profile.monotonic_interior(max_temp, inverse)
+    inter, count =  profile.monotonic_interior(max_temp, inverse, debug=debug)
    
    
     
