@@ -16,6 +16,26 @@ class MCDensity(object):
 
     def get_mass(self):
         return physical.compute_mass(self._radii, self._densities, self._fixed_density)
+    
+    def get_density(self, radius):
+        # If not fixed density, need to do linear interpolation
+        # to get outmost density.
+        assert(self._fixed_density == True)
+        
+        # Fixed density, so find the first shell with larger radius,
+        # Return the density of that shell.
+        assert(radius <= self._radii[-1])
+        
+        shell_num = np.where(self._radii>= radius)[0][0]
+        return self._densities[shell_num]
+        
+        
+    def get_inner_mass(self, outer_radius):
+        inner_radii = self._radii[self._radii < outer_radius]
+        inner_densities = self._densities[:len(inner_radii)]
+        radii = np.append(inner_radii, outer_radius)
+        densities = np.append(inner_densities, self.get_density(outer_radius))
+        return physical.compute_mass(radii, densities, self._fixed_density) 
 
     def get_moment(self):
         return physical.compute_moment(self._radii, self._densities, self._fixed_density)
