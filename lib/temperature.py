@@ -163,7 +163,7 @@ class TemperatureTable(object):
                 return min_temp
         return None
 
-    def min_log_temp(self, pressure, num_steps=20):
+    def min_log_temp(self, pressure, num_steps=20, debug=False):
         # First try min temp
         if self.get_density(10**self._temp.min(), pressure) is not None:
             return self._temp.min()
@@ -172,7 +172,9 @@ class TemperatureTable(object):
         step = (self._temp.max()-self._temp.min())/num_steps
         for i in range(1, num_steps+1):
             cur_temp = self._temp.min()+step*i
-            if cur_temp is None:
+            if debug:
+                print(i, cur_temp)
+            if self.get_density(10**cur_temp, pressure) is None:
                 continue
 
             else:
@@ -182,6 +184,8 @@ class TemperatureTable(object):
                 for i in range(20):
                     cur_temp = 0.5 * (min_temp+max_temp)
                     cur_rho = self.get_density(10**cur_temp, pressure)
+                    if debug:
+                        print (i, cur_temp, cur_rho)
                     if cur_rho is None:
                         min_temp = cur_temp
                     else:
@@ -194,6 +198,8 @@ class TemperatureTable(object):
         highest_temp = self.max_log_temp(max(pressure, MIN_LOG_VAL), debug=debug)
         low_log_temp = lowest_temp
         high_log_temp = highest_temp
+        if debug:
+            print("hi/lo = %s %s"%(highest_temp, lowest_temp))
         for i in range(20):
             cur_temp = 0.5*(low_log_temp+high_log_temp) 
             cur_rho = self.get_density(10**cur_temp, pressure)
@@ -315,7 +321,10 @@ class TemperatureCatalog(object):
         if c_above is None or c_below is None:
             composition = None
         t_above = self._tables[c_above]
-        t_below = self._tables[c_below]        
+        t_below = self._tables[c_below]  
+        if debug:
+            print("composition is %s %s"%(t_above._name, t_below._name))
+            
         if pressure == 0:
             return 0
         try:
@@ -360,13 +369,16 @@ class TemperatureCatalog(object):
             else:
                 min_temp = cur_temp
                 
-        if abs(composition-self.get_composition(10**cur_temp, density, pressure)) > 0.1:
+        if abs(composition-self.get_composition(10**cur_temp, density, pressure)) > 0.001:
+        #if abs(composition - cur_comp) > 0.0001:
             return None
         
         return 10**cur_temp
         
     def get_composition(self, temp, density, pressure, debug=False):
             densities = [t.get_density(temp, pressure) for t in self._tables]
+            if debug:
+                print("temp: %s densities: %s"%(temp,densities))
             densities = np.array([x for x in map(lambda x:-1 if x is None else x, densities)])
             d_below = np.where(np.logical_and(densities < density, densities >= 0))[0]
             if len(d_below) > 0:
@@ -382,7 +394,8 @@ class TemperatureCatalog(object):
 
             if d_above is None or d_below is None:
                 composition = None
-            
+            elif not d_above == d_below+1:
+                composition = None
             else:
                 mix =  interpolate_composition(density, densities[d_above], densities[d_below])
                 composition = self._compositions[d_below] + (self._compositions[d_above]-self._compositions[d_below])*mix
