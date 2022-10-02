@@ -111,6 +111,7 @@ class TemperatureProfile(object):
                 # This is what we want.   Just use same composition.
                 comps.append(cur_comp)
                 temps.append(temp_for_comp)
+                continue
                 cur_temp = temp_for_comp
 
             elif temp_for_comp >= cur_temp:
@@ -129,6 +130,7 @@ class TemperatureProfile(object):
                 if (comp_for_temp > cur_comp + COMP_EPS):
                     comps.append(None)
                     temps.append(None)
+                    continue
                     #import ipdb;ipdb.set_trace()
 #                assert comp_for_temp <= cur_comp, "Error: composition not monontonic"
 

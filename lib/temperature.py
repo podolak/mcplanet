@@ -369,7 +369,7 @@ class TemperatureCatalog(object):
             else:
                 min_temp = cur_temp
                 
-        if abs(composition-self.get_composition(10**cur_temp, density, pressure)) > 0.001:
+        if abs(composition-self.get_composition(10**cur_temp, density, pressure)) > 0.1:
         #if abs(composition - cur_comp) > 0.0001:
             return None
         
