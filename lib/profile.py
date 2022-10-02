@@ -111,8 +111,8 @@ class TemperatureProfile(object):
                 # This is what we want.   Just use same composition.
                 comps.append(cur_comp)
                 temps.append(temp_for_comp)
-                continue
                 cur_temp = temp_for_comp
+                continue
 
             elif temp_for_comp >= cur_temp:
                 # Using the current composition yields a higher temperature.
