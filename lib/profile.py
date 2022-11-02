@@ -332,8 +332,13 @@ def get_fixed_temp_model(mass, moment_ratio, radius, num_shells,
     random.seed(seed)
 
     
-    mcdensity = mc_density.create_mcdensity(mass, moment_ratio, radius, num_shells=num_shells, smooth=smooth)
-
+    mcdensity = mc_density.create_mcdensity(mass, moment_ratio, radius, num_shells=100, smooth=smooth)
+    def increase_shells(model, num_shells):
+        new_model = mc_density.create_mcdensity(model.get_mass(), model.get_mass_moment_ratio(), model.radius(), num_shells=num_shells, smooth=0)
+        new_model._densities = np.interp(new_model._radii, model._radii, model._densities)
+        return new_model
+    mcdensity = increase_shells(mcdensity, num_shells)
+    
     profile = TemperatureProfile(temperature_catalog, mcdensity)
     inter, count =  profile.monotonic_interior(max_temp, inverse, debug=debug)
    
