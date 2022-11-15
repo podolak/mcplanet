@@ -6,10 +6,11 @@ import lib.physical         as physical
 import lib.monotonic        as monotonic
 
 class MCDensity(object):
-    def __init__(self, radii, densities, fixed_density=True):
+    def __init__(self, radii, densities, pressure=None, fixed_density=True):
         self._radii = radii
         self._fixed_density = fixed_density
         self._densities = densities
+        self._pressure = pressure
 
     def radius(self):
         return self._radii[-1]
@@ -47,7 +48,9 @@ class MCDensity(object):
         return self._radii
 
     def get_pressure(self):
-        return physical.compute_pressure(self._radii, self._densities)
+        if self._pressure == None:
+            self._pressure = physical.compute_pressure(self._radii, self._densities)
+        return self._pressure
 
     def get_mass_moment_ratio(self):
         return self.get_moment()/(self.get_mass()*self.radius()*self.radius())
@@ -166,7 +169,7 @@ class MCDensityFactory(object):
         smaller = random.choice(smaller_moment)
         alpha = (self._moment-smaller[0])/(bigger[0]-smaller[0])
         
-        return MCDensity(self._shells, alpha*bigger[1][1] + (1.0-alpha)*smaller[1][1], self._fixed_density)
+        return MCDensity(self._shells, alpha*bigger[1][1] + (1.0-alpha)*smaller[1][1], fixed_density = self._fixed_density)
     
 
 def create_mcdensity(mass, moment_ratio, radius, num_shells=100, num_samples=100, smooth=101):

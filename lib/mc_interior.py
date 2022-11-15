@@ -8,7 +8,7 @@ from lib.mc_density      import MCDensity, create_mcdensity
 
 class MCInterior(MCDensity):
     def __init__(self, radii, densities, mix, catalog, fixed_density=True, use_cgs=True):
-        super(MCInterior, self).__init__(radii, densities, fixed_density)
+        super(MCInterior, self).__init__(radii, densities, fixed_density=fixed_density)
         self._mix = np.array(mix)
         self._catalog = catalog
 
