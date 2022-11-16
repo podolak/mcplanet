@@ -48,7 +48,7 @@ class MCDensity(object):
         return self._radii
 
     def get_pressure(self):
-        if self._pressure == None:
+        if self._pressure is None:
             self._pressure = physical.compute_pressure(self._radii, self._densities)
         return self._pressure
 
