@@ -68,7 +68,7 @@ class MCDensity(object):
         plt.legend()
 
 class MCDensityFactory(object):
-    def __init__(self, mass, moment_ratio, radius, shells=None, num_shells=100, smooth=101, fixed_density=True):
+    def __init__(self, mass, moment_ratio, radius, shells=None, num_shells=100, smooth=101, fixed_density=True, min_density=0.0):
         # TODO:   Need to think about/ document units.
         self._mass = mass
         self._smooth = smooth
@@ -76,7 +76,8 @@ class MCDensityFactory(object):
         self._radius = radius
         self._moment_ratio = moment_ratio
         self._moment = moment_ratio*mass*radius*radius
-
+        self._min_density = min_density
+        
         # Can pass in units as increasing list of radii.
         # Shells are the outer radius of the shells.   Assume shell are touching.
         # num_shells ignored in this case.
@@ -107,6 +108,20 @@ class MCDensityFactory(object):
         mass = np.array(coefficients).dot(model_points)
         return model_points*self._mass/mass
 
+    
+    def _get_vol(self):
+        # Assume that our current model is (x,y)
+        # Where x is the outer radius (first is zero)
+        # And y is the density.
+        outer = self._shells
+        inner= np.append([0], self._shells)
+        ranges = zip(inner, outer)
+
+        coefficients = [physical.get_mass_coefficient(rad1, rad2, self._fixed_density)
+                        for (rad1, rad2) in ranges]
+        return sum(coefficients)
+
+        
     def _normalize_moment(self, model_points):
         # Assume that our current model is (x,y)
         # Where x is the outer radius (first is zero)
@@ -127,7 +142,17 @@ class MCDensityFactory(object):
     def create_mass_model(self):
         # first generate random monotonic-path
         model = monotonic.get_monotonic_vals(self._shells/self._radius, self._smooth)
-        return self._shells, self._normalize_mass(model)
+        norm_model = self._normalize_mass(model)
+        
+        # Assure minimum density
+        if norm_model[-1] < self._min_density:
+            m = self._mass
+            k0 = norm_model[-1]
+            k = self._min_density
+            v = self._get_vol()
+            x =  (k-k0)*m/(m-k*v)
+            norm_model = (norm_model + x)*m/(m+v*x)
+        return self._shells, norm_model
 
 
     def create_moment_model(self):
@@ -172,8 +197,8 @@ class MCDensityFactory(object):
         return MCDensity(self._shells, alpha*bigger[1][1] + (1.0-alpha)*smaller[1][1], fixed_density = self._fixed_density)
     
 
-def create_mcdensity(mass, moment_ratio, radius, num_shells=100, num_samples=100, smooth=101):
-    factory = MCDensityFactory(mass, moment_ratio, radius, None, num_shells, smooth)
+def create_mcdensity(mass, moment_ratio, radius, num_shells=100, num_samples=100, smooth=101, min_density=0.0):
+    factory = MCDensityFactory(mass, moment_ratio, radius, None, num_shells, smooth, True, min_density)
     return factory.create_mass_and_moment_model(num_samples)
     
     

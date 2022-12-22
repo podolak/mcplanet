@@ -326,13 +326,13 @@ class TemperatureProfile(object):
     
 def get_fixed_temp_model(mass, moment_ratio, radius, num_shells, 
                          max_temp, temperature_catalog, smooth=101, 
-                         inverse=False, seed=None, full_model= False, debug=False):
+                         inverse=False, seed=None, full_model= False, debug=False, min_density=0.0):
     if seed == None:
         seed = round(1000.0*random.random(),9)
     random.seed(seed)
 
     
-    mcdensity = mc_density.create_mcdensity(mass, moment_ratio, radius, num_shells=100, smooth=smooth)
+    mcdensity = mc_density.create_mcdensity(mass, moment_ratio, radius, num_shells=100, smooth=smooth, min_density=min_density)
     def increase_shells(model, num_shells):
         new_model = mc_density.create_mcdensity(model.get_mass(), model.get_mass_moment_ratio(), model.radius(), num_shells=num_shells, smooth=0)
         new_model._densities = np.interp(new_model._radii, model._radii, model._densities)
