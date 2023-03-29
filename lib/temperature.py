@@ -494,6 +494,9 @@ def env_density_table(comp_val=-1):
 def eos_env_density_table(comp_val=-1):
     return load_temp_pressure_EOS_file("data/raw_files/TABLEEOS_2021_TP_Y0275_v1","env", comp_val)
 
+def eos_he_density_table(comp_val=-1):
+    return load_temp_pressure_EOS_file("data/raw_files/TABLE_HE_TP_v1","helium", comp_val)
+
 def H_density_table():
     return temp_pressure_to_density_table("data/H_temp_pressure_to_density.txt", "env", -1.0)
 
@@ -546,6 +549,22 @@ def iron_sio2_co_water_ch4_eos_env_catalog():
 
 def iron_sio2_water_ch4_eos_env_catalog():
     return build_catalog("iron_sio2_water_ch4_env_catalog", [eos_env_density_table(-2), ch4_density_table(-1), water_density_table(), sio2_density_table(1), iron_density_table(2)])
+
+def iron_sio2_water_eos_he_catalog():
+    return build_catalog("iron_sio2_co_water_env_catalog", [eos_he_density_table(), water_density_table(), sio2_density_table(), iron_density_table()])
+
+def iron_sio2_co_water_eos_he_catalog():
+    return build_catalog("iron_sio2_co_water_env_catalog", [eos_he_density_table(), water_density_table(), co_density_table(1), sio2_density_table(2), iron_density_table(3)])
+
+def iron_sio2_co_water_ch4_eos_he_catalog():
+    return build_catalog("iron_sio2_co_water_env_catalog", [eos_he_density_table(-2), ch4_density_table(-1), water_density_table(), co_density_table(1), sio2_density_table(2), iron_density_table(3)])
+
+def iron_sio2_water_ch4_eos_he_catalog():
+    return build_catalog("iron_sio2_co_water_env_catalog", [eos_he_density_table(-2), ch4_density_table(-1), water_density_table(), sio2_density_table(1), iron_density_table(2)])
+
+
+
+
 
 """
 def iron_sio2_eos_env_catalog():
