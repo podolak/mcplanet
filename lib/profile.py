@@ -31,7 +31,7 @@ class TemperatureProfile(object):
         num_shells = len(self._model.get_radii())
         for comp, name in zip(self._catalog._compositions, self._catalog.get_table_names()):
             mix = self._catalog.composition_to_mix(comp)
-            mcinterior = mc_interior.MCInterior(self._model._radii, self._model._densities, np.outer(np.ones(num_shells), mix), self._catalog)
+            mcinterior = mc_interior.MCInterior(self._model._radii, self._model._densities, np.outer(np.ones(num_shells), mix), self._catalog, None, self._model._fixed_density)
             mcinterior.plot_temp(label=name)
         plt.legend()
         
@@ -41,7 +41,7 @@ class TemperatureProfile(object):
         for i in range(11):
             comp = -1.0 + i/10.0
             mix = self._catalog.composition_to_mix(comp)
-            mcinterior = mc_interior.MCInterior(self._model._radii, self._model._densities, np.outer(np.ones(num_shells), mix), self._catalog)
+            mcinterior = mc_interior.MCInterior(self._model._radii, self._model._densities, np.outer(np.ones(num_shells), mix), self._catalog, None, self._model._fixed_density)
             mcinterior.plot_temp(label=round(comp,1))
         plt.legend()
         
@@ -51,7 +51,7 @@ class TemperatureProfile(object):
         for i in range(11):
             comp = 0.0 + i/10.0
             mix = self._catalog.composition_to_mix(comp)
-            mcinterior = mc_interior.MCInterior(self._model._radii, self._model._densities, np.outer(np.ones(num_shells), mix), self._catalog)
+            mcinterior = mc_interior.MCInterior(self._model._radii, self._model._densities, np.outer(np.ones(num_shells), mix), self._catalog, None, self._model._fixed_density)
             mcinterior.plot_temp(label=round(comp,1))
         plt.legend()
             
@@ -290,7 +290,7 @@ class TemperatureProfile(object):
         #return zip(rad, rho, p, comps, temps)
         return comps
     
-    def monotonic_interior(self, max_temp, inverse=False, debug = False):
+    def monotonic_interior(self, max_temp, inverse=False, fixed_density=True, cgs=True, debug = False):
      
         if inverse:
             comps = self._inverse_monotonic_composition(max_temp)
@@ -321,24 +321,29 @@ class TemperatureProfile(object):
             print(comps)
         if count > 0.20 * len(rad):
             return None, None
-        return mc_interior.MCInterior(rad, rho,  mix, self._catalog), count
+        return mc_interior.MCInterior(rad, rho,  mix, self._catalog, None, fixed_density), count
     
     
-def get_fixed_temp_model(mass, moment_ratio, radius, num_shells, 
-                         max_temp, temperature_catalog, smooth=101, 
-                         inverse=False, seed=None, full_model= False, debug=False, min_density=0.0):
+def get_fixed_temp_model(mass, moment_ratio, radius, num_shells, outer_two_shell_ratio,
+                         max_temp, temperature_catalog, smooth, 
+                         inverse=False, seed=None, full_model= False, debug=False, min_density=0.0,
+                         fixed_density=True, num_random_samples=100):
     if seed == None:
         seed = round(1000.0*random.random(),9)
     random.seed(seed)
-
     
-    mcdensity = mc_density.create_mcdensity(mass, moment_ratio, radius, num_shells=100, smooth=smooth, min_density=min_density)
+    mcdensity = mc_density.create_mcdensity(mass, moment_ratio, radius, num_shells, outer_two_shell_ratio, smooth, fixed_density, min_density, num_random_samples)
+    """
+    # This was a temporary hack to keep the shape of the density distribution the same while increasing the number of shells. 
+    # Mainly to test/counter issues of fixed density in shell.
+    # To use, set the number of shells above to a smaller number (e.g. 100), then expand to 1000 here.
+    
     def increase_shells(model, num_shells):
         new_model = mc_density.create_mcdensity(model.get_mass(), model.get_mass_moment_ratio(), model.radius(), num_shells=num_shells, smooth=0)
         new_model._densities = np.interp(new_model._radii, model._radii, model._densities)
         return new_model
     mcdensity = increase_shells(mcdensity, num_shells)
-    
+    """
     profile = TemperatureProfile(temperature_catalog, mcdensity)
     inter, count =  profile.monotonic_interior(max_temp, inverse, debug=debug)
    

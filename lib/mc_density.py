@@ -6,7 +6,7 @@ import lib.physical         as physical
 import lib.monotonic        as monotonic
 
 class MCDensity(object):
-    def __init__(self, radii, densities, pressure=None, fixed_density=True):
+    def __init__(self, radii, densities, pressure, fixed_density):
         self._radii = radii
         self._fixed_density = fixed_density
         self._densities = densities
@@ -18,11 +18,7 @@ class MCDensity(object):
     def get_mass(self):
         return physical.compute_mass(self._radii, self._densities, self._fixed_density)
     
-    def get_density(self, radius):
-        # If not fixed density, need to do linear interpolation
-        # to get outmost density.
-        assert(self._fixed_density == True)
-        
+    def get_density(self, radius):  
         # Fixed density, so find the first shell with larger radius,
         # Return the density of that shell.
         assert(radius <= self._radii[-1])
@@ -49,7 +45,7 @@ class MCDensity(object):
 
     def get_pressure(self):
         if self._pressure is None:
-            self._pressure = physical.compute_pressure(self._radii, self._densities)
+            self._pressure = physical.compute_pressure(self._radii, self._densities, self._fixed_density)
         return self._pressure
 
     def get_mass_moment_ratio(self):
@@ -68,7 +64,7 @@ class MCDensity(object):
         plt.legend()
 
 class MCDensityFactory(object):
-    def __init__(self, mass, moment_ratio, radius, shells=None, num_shells=100, smooth=101, fixed_density=True, min_density=0.0):
+    def __init__(self, mass, moment_ratio, radius, shells, num_shells, outer_two_shell_ratio, smooth, fixed_density, min_density):
         # TODO:   Need to think about/ document units.
         self._mass = mass
         self._smooth = smooth
@@ -82,15 +78,21 @@ class MCDensityFactory(object):
         # Shells are the outer radius of the shells.   Assume shell are touching.
         # num_shells ignored in this case.
         if shells is None:
-            self._shells = self._create_radii(num_shells)
+            self._shells = self._create_radii(num_shells, outer_two_shell_ratio)
         else:
             self._shells = np.array(shells)
 
         self._num_shells = len(self._shells)
 
-    def _create_radii(self, num_shells):
-        # For now, just equal radii for each shell.
-        return (np.array(range(num_shells))+1)/float(num_shells)*self._radius
+    def _create_radii(self, num_shells, outer_two_shell_ratio):
+        # We have two types of shells, "main" shells, controlled by num_shells.
+        # Outer two shells are split into outer_two_shell_ratio shells.
+        
+        #set up inner shells:
+        inner = (np.array(range(num_shells))+1)[:-2]/float(num_shells)
+        outer = (np.array(range(num_shells*outer_two_shell_ratio))+1)[-2*outer_two_shell_ratio:]/float(num_shells*outer_two_shell_ratio)
+        return np.concatenate((inner, outer))*self._radius
+        #return (np.array(range(num_shells))+1)/float(num_shells)*self._radius
 
     def _normalize_mass(self, model_points):
         # Assume that our current model is (x,y)
@@ -98,14 +100,12 @@ class MCDensityFactory(object):
         # And y is the density.
         #
         # We need to normalize so we match the total mass
+        
         outer = self._shells
+        
         inner= np.append([0], self._shells)
         ranges = zip(inner, outer)
-
-        coefficients = [physical.get_mass_coefficient(rad1, rad2, self._fixed_density)
-                        for (rad1, rad2) in ranges]
-
-        mass = np.array(coefficients).dot(model_points)
+        mass = physical.compute_mass(self._shells, model_points, self._fixed_density)
         return model_points*self._mass/mass
 
     
@@ -113,12 +113,18 @@ class MCDensityFactory(object):
         # Assume that our current model is (x,y)
         # Where x is the outer radius (first is zero)
         # And y is the density.
-        outer = self._shells
+        outer = self._shells[-1]
+        
+        # Just the volume of a sphere with the outer radius
+        return 4.0/3.0 * np.pi * np.power(outer,3.0)
+    
+        """
         inner= np.append([0], self._shells)
         ranges = zip(inner, outer)
 
-        coefficients = [physical.get_mass_coefficient(rad1, rad2, self._fixed_density)
-                        for (rad1, rad2) in ranges]
+        #coefficients = [physical.get_mass_coefficient(rad1, rad2, self._fixed_density)
+        #                for (rad1, rad2) in ranges]
+        """
         return sum(coefficients)
 
         
@@ -132,10 +138,10 @@ class MCDensityFactory(object):
         inner= np.append([0], self._shells)
         ranges = zip(inner, outer)
 
-        coefficients = [physical.get_moment_coefficient(rad1, rad2, self._fixed_density)
-                        for (rad1, rad2) in ranges]
-
-        moment = np.array(coefficients).dot(model_points)
+        #coefficients = [physical.get_moment_coefficient(rad1, rad2, self._fixed_density)
+        #                for (rad1, rad2) in ranges]
+        moment = physical.compute_moment(self._shells, model_points, self._fixed_density)
+        #moment = np.array(coefficients).dot(model_points)
         return model_points*self._moment/moment
 
 
@@ -161,7 +167,7 @@ class MCDensityFactory(object):
         return self._shells, self._normalize_moment(model)
     
     
-    def create_mass_and_moment_model(self, num_samples = 100):
+    def create_mass_and_moment_model(self, num_samples):
         # We're going to create a model that matches both mass and moment.
         #
         # First, we'll genreate a bunch (100 by default) models and 
@@ -194,11 +200,25 @@ class MCDensityFactory(object):
         smaller = random.choice(smaller_moment)
         alpha = (self._moment-smaller[0])/(bigger[0]-smaller[0])
         
-        return MCDensity(self._shells, alpha*bigger[1][1] + (1.0-alpha)*smaller[1][1], fixed_density = self._fixed_density)
+        return MCDensity(self._shells, alpha*bigger[1][1] + (1.0-alpha)*smaller[1][1], pressure=None, fixed_density = self._fixed_density)
     
+"""
+Function to create default models.
 
-def create_mcdensity(mass, moment_ratio, radius, num_shells=100, num_samples=100, smooth=101, min_density=0.0):
-    factory = MCDensityFactory(mass, moment_ratio, radius, None, num_shells, smooth, True, min_density)
-    return factory.create_mass_and_moment_model(num_samples)
-    
+@param mass: mass of the planet
+@param moment_ratio:  mass/moment ratio of the planet.
+@param radius: radius of the planet.
+@param num_shells: number of "main shells.
+@param outer_two_shell_ratio: split outer two shells into more.  (default=1, no splitting).
+@param num_random_samples:  number of "raw" random models we create before trying to fit moment.   
+                            Defaults to 100, but can set smaller (e.g. 10) for faster models at the expense
+                            of occasionally not getting a model.
+@param smooth: size of smoothing kernel.   Default is 201.   Probably not a good idea to touch.
+@param fixed_density:  true if we assume fixed density throught the model (default for early papers).   
+                       Continuous (piecewise linear) denisty now also mostly supported (not for pressure/temp).
+@param min_density:  Can put a lower bound on the min density of outer layer.
+"""
+def create_mcdensity(mass, moment_ratio, radius, num_shells, outer_two_shell_ratio=1, smooth=201, fixed_density=True, min_density=0.0, num_random_samples=100):
+    factory = MCDensityFactory(mass, moment_ratio, radius, None, num_shells, outer_two_shell_ratio, smooth, fixed_density, min_density)
+    return factory.create_mass_and_moment_model(num_random_samples)
     

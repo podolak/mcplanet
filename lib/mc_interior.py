@@ -7,8 +7,8 @@ import lib.temperature   as temperature
 from lib.mc_density      import MCDensity, create_mcdensity
 
 class MCInterior(MCDensity):
-    def __init__(self, radii, densities, mix, catalog, fixed_density=True, use_cgs=True):
-        super(MCInterior, self).__init__(radii, densities, fixed_density=fixed_density)
+    def __init__(self, radii, densities, mix, catalog, pressure, fixed_density):
+        super(MCInterior, self).__init__(radii, densities, pressure, fixed_density=fixed_density)
         self._mix = np.array(mix)
         self._catalog = catalog
 
@@ -47,7 +47,7 @@ class MCInterior(MCDensity):
     def get_mix_ratios(self):
         retval = []
         for name in self._catalog.get_table_names():
-            retval.append(round(self.get_mix_mass(name)/self.get_mass(), 7))
+            retval.append(round(self.get_mix_mass(name)/self.get_mass(), 2))
         return retval
 
     def get_temp(self):

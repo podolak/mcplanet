@@ -551,16 +551,16 @@ def iron_sio2_water_ch4_eos_env_catalog():
     return build_catalog("iron_sio2_water_ch4_env_catalog", [eos_env_density_table(-2), ch4_density_table(-1), water_density_table(), sio2_density_table(1), iron_density_table(2)])
 
 def iron_sio2_water_eos_he_catalog():
-    return build_catalog("iron_sio2_co_water_env_catalog", [eos_he_density_table(), water_density_table(), sio2_density_table(), iron_density_table()])
+    return build_catalog("iron_sio2_water_he_catalog", [eos_he_density_table(), water_density_table(), sio2_density_table(), iron_density_table()])
 
 def iron_sio2_co_water_eos_he_catalog():
-    return build_catalog("iron_sio2_co_water_env_catalog", [eos_he_density_table(), water_density_table(), co_density_table(1), sio2_density_table(2), iron_density_table(3)])
+    return build_catalog("iron_sio2_co_water_he_catalog", [eos_he_density_table(), water_density_table(), co_density_table(1), sio2_density_table(2), iron_density_table(3)])
 
 def iron_sio2_co_water_ch4_eos_he_catalog():
-    return build_catalog("iron_sio2_co_water_env_catalog", [eos_he_density_table(-2), ch4_density_table(-1), water_density_table(), co_density_table(1), sio2_density_table(2), iron_density_table(3)])
+    return build_catalog("iron_sio2_co_water_ch4_he_catalog", [eos_he_density_table(-2), ch4_density_table(-1), water_density_table(), co_density_table(1), sio2_density_table(2), iron_density_table(3)])
 
 def iron_sio2_water_ch4_eos_he_catalog():
-    return build_catalog("iron_sio2_co_water_env_catalog", [eos_he_density_table(-2), ch4_density_table(-1), water_density_table(), sio2_density_table(1), iron_density_table(2)])
+    return build_catalog("iron_sio2_co_water_he_catalog", [eos_he_density_table(-2), ch4_density_table(-1), water_density_table(), sio2_density_table(1), iron_density_table(2)])
 
 
 
